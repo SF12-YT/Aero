@@ -2,6 +2,11 @@ plugins {
     id 'com.android.application'
 }
 
+def rb21ReleaseUrl = 'https://github.com/SF12-YT/dummy-assets/releases/download/model/f1-2025-redbull-rb21.zip'
+def rb21ReleaseSha256 = '3e8328fab0e16f03209c87cce68dd07dc8871f1fdb9a23143dee520a6da27ef5'
+def threeVersion = '0.145.0'
+def generatedAeroAssets = layout.buildDirectory.dir('generated/aeroAssets')
+
 android {
     namespace 'com.sf12.f1garage'
     compileSdk 35
@@ -10,8 +15,14 @@ android {
         applicationId 'com.sf12.f1garage'
         minSdk 26
         targetSdk 34
-        versionCode 2
-        versionName '0.2.0'
+        versionCode 4
+        versionName '0.4.0'
+    }
+
+    sourceSets {
+        main {
+            assets.srcDir(generatedAeroAssets)
+        }
     }
 
     buildTypes {
@@ -27,4 +38,95 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+}
+
+// Prepare a self-contained offline viewer at build time. The large community
+// model is fetched from the project's GitHub Release, checksum-verified, and
+// the GLB (whose textures are embedded) is extracted into generated assets.
+tasks.register('prepareAeroAssets') {
+    outputs.dir(generatedAeroAssets)
+    outputs.upToDateWhen { false }
+
+    doLast {
+        File outputRoot = generatedAeroAssets.get().asFile
+        File modelDir = new File(outputRoot, 'models')
+        File vendorDir = new File(outputRoot, 'vendor')
+        File downloadDir = layout.buildDirectory.dir('downloads/aerolab').get().asFile
+        modelDir.mkdirs()
+        vendorDir.mkdirs()
+        downloadDir.mkdirs()
+
+        def sha256 = { File file ->
+            def digest = java.security.MessageDigest.getInstance('SHA-256')
+            file.withInputStream { input ->
+                byte[] buffer = new byte[1024 * 1024]
+                int read
+                while ((read = input.read(buffer)) != -1) digest.update(buffer, 0, read)
+            }
+            digest.digest().collect { String.format('%02x', it & 0xff) }.join()
+        }
+
+        def download = { String address, File destination ->
+            if (destination.exists() && destination.length() > 0) return
+            logger.lifecycle("Downloading ${destination.name} for the AeroLab 25 asset bundle...")
+            def connection = new URL(address).openConnection()
+            connection.setConnectTimeout(30000)
+            connection.setReadTimeout(180000)
+            connection.setRequestProperty('User-Agent', 'AeroLab25-Android-Build/0.4.0')
+            File temporary = new File(destination.parentFile, destination.name + '.part')
+            try {
+                connection.getInputStream().withCloseable { input ->
+                    temporary.withOutputStream { output -> output << input }
+                }
+                if (!temporary.exists() || temporary.length() == 0) throw new GradleException("Download was empty: ${address}")
+                if (!temporary.renameTo(destination)) {
+                    destination.bytes = temporary.bytes
+                    temporary.delete()
+                }
+            } finally {
+                temporary.delete()
+            }
+        }
+
+        File releaseZip = new File(downloadDir, 'f1-2025-redbull-rb21.zip')
+        if (releaseZip.exists() && sha256(releaseZip) != rb21ReleaseSha256) releaseZip.delete()
+        download(rb21ReleaseUrl, releaseZip)
+        String actualSha = sha256(releaseZip)
+        if (actualSha != rb21ReleaseSha256) {
+            releaseZip.delete()
+            throw new GradleException("RB21 model archive checksum mismatch. Expected ${rb21ReleaseSha256}, got ${actualSha}")
+        }
+
+        File nestedZip = new File(downloadDir, 'F1-2025 Redbull RB21.zip')
+        new java.util.zip.ZipFile(releaseZip).withCloseable { outer ->
+            def nestedEntry = outer.getEntry('source/F1-2025 Redbull RB21.zip')
+            if (nestedEntry == null) throw new GradleException('The release archive does not contain the expected nested model ZIP.')
+            outer.getInputStream(nestedEntry).withCloseable { input ->
+                nestedZip.withOutputStream { output -> output << input }
+            }
+        }
+
+        File glbFile = new File(modelDir, 'rb21.glb')
+        new java.util.zip.ZipFile(nestedZip).withCloseable { inner ->
+            def glbEntry = inner.getEntry('F1-2025 Redbull RB21.glb')
+            if (glbEntry == null) throw new GradleException('The nested archive does not contain the expected RB21 GLB.')
+            if (!glbFile.exists() || glbFile.length() != glbEntry.size) {
+                inner.getInputStream(glbEntry).withCloseable { input ->
+                    glbFile.withOutputStream { output -> output << input }
+                }
+            }
+        }
+        if (glbFile.length() < 1000000) throw new GradleException('The extracted GLB is unexpectedly small.')
+
+        String threeBase = "https://cdn.jsdelivr.net/npm/three@${threeVersion}/"
+        download(threeBase + 'build/three.min.js', new File(vendorDir, 'three.min.js'))
+        download(threeBase + 'examples/js/loaders/GLTFLoader.js', new File(vendorDir, 'GLTFLoader.js'))
+        download(threeBase + 'examples/js/controls/OrbitControls.js', new File(vendorDir, 'OrbitControls.js'))
+
+        logger.lifecycle("AeroLab assets ready: ${glbFile.length()} byte GLB, Three.js r145 viewer libraries.")
+    }
+}
+
+tasks.named('preBuild').configure {
+    dependsOn(tasks.named('prepareAeroAssets'))
 }

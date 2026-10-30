@@ -1,62 +1,79 @@
-# AeroLab 25 — RB21 exterior study (Android)
+# AeroLab 25 — RB21 model viewer (Android)
 
-AeroLab 25 is an offline-first Android viewer for an interactive, reference-based reconstruction study of the 2025 Red Bull RB21. It uses a native Android WebView shell and a local JavaScript/WebGL geometry engine. There are no remote libraries, CDNs, accounts, trackers, or runtime network requirements.
+AeroLab 25 is an offline Android viewer for a detailed community 3D model published as **F1-2025 Redbull RB21**. It uses a native Android WebView shell and a local Three.js / WebGL scene. The GLB is bundled into the APK during the build; the installed app does not need a network connection to display the car.
 
-## Revision 0.2.0
+## Revision 0.4.0
 
-This revision replaces the original primitive-heavy concept model with a new procedural exterior pass. Geometry is generated from parametric sections and swept profiles rather than relying on large boxes and cylinders.
+This revision replaces the earlier procedural exterior with the downloaded multi-object GLB model. The app preserves the source mesh names and creates a practical system grouping layer for inspection.
 
-### Viewer
+### Inspected model package
 
-- Drag to orbit; pinch or wheel to zoom.
+- 358 scene nodes and 190 mesh objects / primitives.
+- 272,827 indexed triangles.
+- 25 materials and 25 embedded images in the GLB.
+- Source hierarchy includes rear-wing / DRS, cockpit, steering, safety-cell, four wheel / hub assemblies, suspension groups and brake callipers.
+- Source object names are retained when an individual mesh is selected.
+
+The published model title and source page identify it as an RB21. However, its internal names include several `RB19` labels and numerous generic `redbull_*` / `Dummy` objects, with no `RB21`-named nodes. That naming alone does not establish which geometry was reused, so AeroLab describes its controls as **source mesh groups** rather than verified factory component names. The model is a community visual asset, not Red Bull CAD, an engineering scan, or dimensionally certified data. Its precise exterior configuration still needs comparison against matched 2025 RB21 reference photographs.
+
+### Viewer controls
+
+- Drag to orbit; pinch to zoom.
 - Isometric, side and top camera presets, plus fit/reset.
-- Component inspector with 12 selectable systems.
+- Component inspector with selectable mesh-system groups.
+- Select an individual mesh by tapping it in the 3D view.
 - Hide/show, isolate and exploded-view controls.
-- Geometry is generated locally and the app remains usable offline.
 
-### Exterior work in this pass
+### Current app-side system groups
 
-- Three swept front-wing aerofoil elements, endplates and pylons.
-- Multi-section nose and survival-cell envelope, yellow centreline treatment and cockpit aperture.
-- Rounded sidepod shells, inlet mouths, undercut edges, cooling louvres and red livery accents.
-- Engine-cover and airbox silhouette.
-- Shaped floor perimeter, twin tunnel representations, fence blades and rising diffuser surfaces.
-- Multi-element rear wing, beam wing, supports and endplates.
-- Curved halo rails, mirrors and suspension-link fairings.
-- Wheel and tyre envelopes, rims, hubs, brake discs and calipers.
+- Rear wing and DRS.
+- Remaining exterior body panels.
+- Mirrors and antennae.
+- Cockpit and steering.
+- Survival cell.
+- Suspension and steering links.
+- Wheels and hubs.
+- Brake callipers.
 
-The mesh is an evolving reverse-engineering study, not a scan or a replica of Red Bull's confidential CAD. The viewer uses +X towards the nose for convenience; the FIA's published coordinate convention has X positive rearwards, so a sign conversion is required before adding regulatory dimension overlays. The RB21 changed during the season and some cooling/bodywork configurations were circuit-specific. The model uses an RB21-inspired season reference set rather than claiming to be the exact car from one Grand Prix. The current view is an exterior-first model; several power-unit and drivetrain groups are simplified for future isolated/exploded inspection.
+These are convenience groups based on the downloaded scene hierarchy; they are not a claim that every assembly is individually engineered or fully identified. Generic source meshes remain grouped under exterior body panels until their identities can be established.
 
-## Accuracy labels
+## Model attribution and licence
 
-- **REGULATION-LED** — component category and permitted architecture follow the public FIA rules.
-- **REFERENCE-BASED** — visible exterior shape inferred from public photographs and technical galleries.
-- **DIMENSIONAL STUDY** — proportions are guided by public dimensional constraints but not verified against team CAD.
-- **LAYOUT STUDY** — internal assemblies are illustrative and must not be treated as production drawings.
+The 3D model is by **Abu Saif (@abuhossain844)**, titled *F1-2025 Redbull RB21*, and is published on Sketchfab under the **Creative Commons Attribution 4.0 International (CC BY 4.0)** licence.
 
-A reference-based reconstruction can look convincing without being dimensionally exact. Each component should acquire its own source record, confidence rating and measurement notes as the model is refined.
+Source: https://sketchfab.com/3d-models/f1-2025-redbull-rb21-418c3b3cdf9d41ea8beb15076d875a86  
+Licence: https://creativecommons.org/licenses/by/4.0/
+
+AeroLab 25 incorporates the downloaded GLB and adds an app-side viewer, system grouping, selection, highlighting, hide/isolate and exploded-view controls. Attribution is also displayed in the app footer. See [`docs/ATTRIBUTION.md`](docs/ATTRIBUTION.md).
 
 ## Build
 
-Open the project folder in Android Studio, or build from a terminal with Android SDK platform 35 and build tools 35.0.0 installed:
+Requirements: Java 17, Gradle 8.9 (or compatible), Android SDK platform 35 and Android Build Tools 35.0.0.
 
 ```bash
 gradle --no-daemon assembleDebug
 ```
 
+**The first build needs internet access.** A Gradle preparation task downloads the public GitHub Release archive, verifies its SHA-256 checksum, extracts the embedded GLB and downloads the pinned Three.js r145 browser scripts. These files are placed in generated Android assets and bundled into the APK. The model is not fetched at app runtime; the installed APK works offline.
+
+The model release is kept outside the Git repository to avoid committing a 124 MB binary asset:
+
+https://github.com/SF12-YT/dummy-assets/releases/tag/model
+
 The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
-The GitHub Actions workflow pins Ubuntu 24.04, uses current action majors, installs only the named Android SDK packages, and deliberately does not install the obsolete `tools` SDK package. It builds on pushes to `main`/`master` and via **Run workflow**.
+The GitHub Actions workflow builds on pushes to `main` / `master` and via **Run workflow**. It uses Ubuntu 24.04, Java 17, and installs only named Android SDK packages (not the removed legacy `tools` package).
 
 ## Project structure
 
 ```text
 AeroLab25/
 ├── app/src/main/assets/
-│   ├── index.html        # viewer UI
-│   └── model.js          # procedural WebGL geometry and interactions
+│   ├── index.html        # viewer interface
+│   └── viewer.js         # Three.js scene, model loading and interactions
 ├── app/src/main/java/    # Android WebView shell
 ├── docs/
+│   ├── ATTRIBUTION.md
 │   └── REFERENCE_REGISTER.md
 └── .github/workflows/
     └── android.yml
@@ -64,10 +81,11 @@ AeroLab25/
 
 ## Next modelling steps
 
-1. Lock the chosen RB21 Grand Prix configuration and compare the model against matched side/front/rear/top photographs.
-2. Add measurement overlays and calibrated reference-image planes.
-3. Split exterior systems into independently selectable subassemblies: individual flaps, fences, strakes, wishbone members, uprights, brake ducts, louvres, panels and fasteners.
-4. Add component-level dimensions, source citations, confidence and version history.
-5. Progressively open the bodywork and model the internal cooling, engine, hybrid systems, transmission and hydraulic/electrical routing.
+1. Compare matched orthographic views of this model against official RB21 photographs from a single, named race configuration.
+2. Correct any visible mismatches in nose, front wing, sidepod inlets / undercuts, floor edge, engine cover and rear wing.
+3. Replace opaque source labels with documented names only when the component identity is adequately verified.
+4. Add individually selectable aero elements, fences, strakes, suspension members, uprights, brake ducts and fasteners.
+5. Add component dimensions, provenance, confidence and version history.
+6. Progressively model internal cooling, engine, hybrid systems, transmission and hydraulic / electrical routing.
 
-No proprietary CAD or internal design data is claimed or included.
+No proprietary Red Bull CAD or internal design data is claimed or included.

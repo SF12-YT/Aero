@@ -46,6 +46,6 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v7
         with:
-          name: aerolab25-rb21-exterior-debug-apk
+          name: aerolab25-rb21-model-viewer-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
