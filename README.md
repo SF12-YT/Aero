@@ -2,6 +2,10 @@
 
 AeroLab 25 is an offline Android viewer for a detailed community 3D model published as **F1-2025 Redbull RB21**. It uses a native Android WebView shell and a local Three.js / WebGL scene. The GLB is packaged as an Android app asset inside the APK; the installed app does not need a network connection to display the car.
 
+## Revision 0.4.4
+
+Revision 0.4.4 adds a source-object annotation catalogue for the RB21 community model. It maps the owner-supplied exact mesh identifiers to human-readable parts, including front/rear brake ducts, four corner-specific brake drums, all four wheel/rim and tyre pairs, two wheel rods, split seatbelt-harness meshes, rear wing/DRS parts, rear lights, T-cam cover pieces, exterior panels, driver name and sponsor/team markings. The original GLB object name remains visible in the inspector and is included in search. The `rearwing 011 001` entry is explicitly flagged for visual review because the supplied annotations assign it to both Oracle and the lower half of Gate.io. New category filters separate bodywork, driver/cockpit, suspension, wheels, brakes, branding and the power unit; an IDENTIFIED filter shows only meshes with an explicit annotation. These labels are user-supplied object identifications, not independently verified Red Bull factory part numbers.
+
 ## Revision 0.4.3
 
 This revision keeps the downloaded multi-object GLB as a packaged Android asset and fixes how Android WebView serves that local binary file to Three.js. The app preserves all 190 imported source mesh objects and exposes them as individual selectable rows, with category filters and text search. It also retains app-side system grouping for inspection.
@@ -27,7 +31,7 @@ The published model title and source page identify it as an RB21. However, its i
 
 - Drag to orbit; pinch to zoom.
 - Isometric, side and top camera presets, plus fit/reset.
-- Component inspector with 190 individually selectable imported source meshes plus the 235 separately selectable power-unit study meshes (425 meshes total), category filters and search.
+- Component inspector with 190 individually selectable imported source meshes plus the 235 separately selectable power-unit study meshes (425 meshes total), exact source-object annotations, category filters, identified-only filtering and search across part labels/source IDs.
 - Select an individual mesh by tapping it in the 3D view or choosing it from the searchable 425-object list.
 - Hide/show and isolate selected individual meshes or entire systems, plus exploded view.
 
@@ -39,8 +43,10 @@ The published model title and source page identify it as an RB21. However, its i
 - Cockpit and steering.
 - Survival cell.
 - Suspension and steering links.
-- Wheels and hubs.
-- Brake callipers.
+- Corner-specific wheels, rims, tyres and hubs.
+- Brake ducts, brake drums and the original brake-calliper source hierarchy.
+- Driver environment and seatbelt-harness sections.
+- Livery, sponsor/team decals, driver-name markings and T-cam visual markers.
 - Honda RBPTH003 power-unit study (235 app-authored meshes).
 
 These are convenience groups based on the downloaded scene hierarchy; they are not a claim that every assembly is individually engineered or fully identified. Generic source meshes remain grouped under exterior body panels until their identities can be established.
@@ -68,9 +74,9 @@ The model release is kept outside the Git repository to avoid committing a 124 M
 
 https://github.com/SF12-YT/dummy-assets/releases/tag/model
 
-The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`. Revision 0.4.3 uses Android version code 7.
+The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`. Revision 0.4.4 uses Android version code 8.
 
-The app-side geometry builder has a lightweight inventory smoke test. From the project root, run `node tools/validate_powerunit.js`. It checks the 235-mesh inventory, unique selectable names, component metadata, key part counts and both supported model-axis orientations. This does not replace an Android/WebGL runtime test or validate the installation against proprietary RB21 CAD.
+The app-side geometry builder has a lightweight inventory smoke test. From the project root, run `node tools/validate_powerunit.js`. It checks the 235-mesh inventory, unique selectable names, component metadata, key part counts and both supported model-axis orientations. The source-name catalogue can be checked with `node tools/validate_source_annotations.js`; this verifies the 61 supplied source identifiers, normalization rules, exact-name collision handling and the flagged rearwing annotation conflict. These checks do not replace an Android/WebGL runtime test or validate the installation against proprietary RB21 CAD.
 
 The GitHub Actions workflow builds on pushes to `main` / `master` and via **Run workflow**. It uses Ubuntu 24.04, Java 17, and installs only named Android SDK packages (not the removed legacy `tools` package).
 
@@ -87,10 +93,12 @@ AeroLab25/
 ├── docs/
 │   ├── ATTRIBUTION.md
 │   ├── REFERENCE_REGISTER.md
-│   └── POWER_UNIT_MODEL.md
+│   ├── POWER_UNIT_MODEL.md
+│   └── SOURCE_MESH_ANNOTATIONS.md
 ├── THIRD_PARTY_NOTICES.md
 ├── tools/
-│   └── validate_powerunit.js
+│   ├── validate_powerunit.js
+│   └── validate_source_annotations.js
 └── .github/workflows/
     └── android.yml
 ```
@@ -105,3 +113,8 @@ AeroLab25/
 6. Refine hidden internal geometry only where reliable technical references support it; keep unknown dimensions and routing explicitly provisional.
 
 No proprietary Red Bull CAD or internal design data is claimed or included.
+
+
+### Source-mesh annotation coverage
+
+The source-object catalogue is maintained in `app/src/main/assets/viewer.js` in the `addKnownParts(...)` declarations. Normalization accepts either spaces or underscores in imported Blender/GLB names and tolerates Blender duplicate suffixes such as `.001`; it does not rename the source object. When a mesh is selected, the inspector shows the annotated component description and its original object name. If an annotation does not match an object in a future GLB revision, that mesh remains selectable under its original name and is not falsely given a different part identity.

@@ -15,8 +15,8 @@ android {
         applicationId 'com.sf12.f1garage'
         minSdk 26
         targetSdk 34
-        versionCode 7
-        versionName '0.4.3'
+        versionCode 8
+        versionName '0.4.4'
     }
 
     sourceSets {
@@ -72,7 +72,7 @@ tasks.register('prepareAeroAssets') {
             def connection = new URL(address).openConnection()
             connection.setConnectTimeout(30000)
             connection.setReadTimeout(180000)
-            connection.setRequestProperty('User-Agent', 'AeroLab25-Android-Build/0.4.3')
+            connection.setRequestProperty('User-Agent', 'AeroLab25-Android-Build/0.4.4')
             File temporary = new File(destination.parentFile, destination.name + '.part')
             try {
                 connection.getInputStream().withCloseable { input ->
