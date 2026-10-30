@@ -2,9 +2,9 @@
 
 AeroLab 25 is an offline Android viewer for a detailed community 3D model published as **F1-2025 Redbull RB21**. It uses a native Android WebView shell and a local Three.js / WebGL scene. The GLB is packaged as an Android app asset inside the APK; the installed app does not need a network connection to display the car.
 
-## Revision 0.4.1
+## Revision 0.4.2
 
-This revision keeps the downloaded multi-object GLB as a packaged Android asset and fixes how Android WebView serves that local binary file to Three.js. The app preserves the source mesh names and creates a practical system grouping layer for inspection.
+This revision keeps the downloaded multi-object GLB as a packaged Android asset and fixes how Android WebView serves that local binary file to Three.js. The app preserves all 190 source mesh names and exposes each mesh as an individual selectable row, with category filters and text search. It also retains app-side system grouping for inspection.
 
 
 This revision fixes local GLB loading in Android WebView. The GLB remains a normal Android APK asset (not an internet-hosted model). The app now serves assets from `AssetManager` under the virtual HTTPS origin `https://appassets.androidplatform.net/assets/`, so Three.js can request the binary GLB using XHR without `file://` origin restrictions. File access from arbitrary local paths is disabled.
@@ -23,11 +23,11 @@ The published model title and source page identify it as an RB21. However, its i
 
 - Drag to orbit; pinch to zoom.
 - Isometric, side and top camera presets, plus fit/reset.
-- Component inspector with selectable mesh-system groups.
-- Select an individual mesh by tapping it in the 3D view.
-- Hide/show, isolate and exploded-view controls.
+- Component inspector with 190 individually selectable source mesh objects, category filters and search.
+- Select an individual mesh by tapping it in the 3D view or choosing it from the searchable 190-object list.
+- Hide/show and isolate selected individual meshes or entire systems, plus exploded view.
 
-### Current app-side system groups
+### App-side classification groups
 
 - Rear wing and DRS.
 - Remaining exterior body panels.

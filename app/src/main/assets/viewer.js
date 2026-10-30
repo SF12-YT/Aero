@@ -24,7 +24,9 @@
   ];
   const systemById = Object.fromEntries(systems.map(s => [s.id, s]));
   const meshes = [];
+  let currentMatchCount = 0;
   const hiddenSystems = new Set();
+  const hiddenMeshes = new Set();
   let carRoot = null;
   let selectedSystem = 'body';
   let selectedMesh = null;
@@ -134,32 +136,63 @@
     let hiddenMeshCount = 0;
     for (const mesh of meshes) {
       const id = mesh.userData.systemId;
-      const hidden = hiddenSystems.has(id) || (isolated && id !== selectedSystem);
+      const hidden = hiddenSystems.has(id) || hiddenMeshes.has(mesh)
+        || (isolated && (selectedMesh ? mesh !== selectedMesh : id !== selectedSystem));
       mesh.visible = !hidden;
       if (hidden) hiddenMeshCount++;
     }
     const counter = document.getElementById('partCount');
-    if (counter) counter.textContent = `${meshes.length} MESHES · ${hiddenMeshCount} HIDDEN`;
+    if (counter) counter.textContent = `${meshes.length} OBJECTS · ${currentMatchCount} MATCHED · ${hiddenMeshCount} HIDDEN`;
     const toggle = document.getElementById('togglePart');
-    if (toggle) toggle.textContent = hiddenSystems.has(selectedSystem) ? 'SHOW SYSTEM' : 'HIDE SYSTEM';
+    if (toggle) {
+      const isHidden = selectedMesh ? hiddenMeshes.has(selectedMesh) : hiddenSystems.has(selectedSystem);
+      toggle.textContent = isHidden ? (selectedMesh ? 'SHOW OBJECT' : 'SHOW SYSTEM') : (selectedMesh ? 'HIDE OBJECT' : 'HIDE SYSTEM');
+    }
     const isolate = document.getElementById('isolate');
-    if (isolate) isolate.textContent = isolated ? 'RESTORE ALL' : 'ISOLATE';
+    if (isolate) isolate.textContent = isolated ? 'RESTORE ALL' : (selectedMesh ? 'ISOLATE OBJECT' : 'ISOLATE SYSTEM');
   }
 
   function renderParts() {
     if (!partHost) return;
     partHost.innerHTML = '';
     const filter = window.aeroFilter || 'ALL';
-    const visibleSystems = systems.filter(s => filter === 'ALL' || s.category === filter);
-    for (const system of visibleSystems) {
-      const count = meshes.filter(m => m.userData.systemId === system.id).length;
-      if (!count) continue;
+    const query = (document.getElementById('meshSearch')?.value || '').trim().toUpperCase();
+    const filtered = meshes.filter(mesh => {
+      const system = systemById[mesh.userData.systemId];
+      if (!system || (filter !== 'ALL' && system.category !== filter)) return false;
+      if (!query) return true;
+      const searchable = `${mesh.name || ''} ${humanName(mesh.name)} ${system.name} ${system.category}`.toUpperCase();
+      return searchable.includes(query);
+    });
+
+    currentMatchCount = filtered.length;
+    for (const mesh of filtered) {
+      const system = systemById[mesh.userData.systemId];
       const button = document.createElement('button');
-      button.className = 'part' + (system.id === selectedSystem ? ' active' : '');
-      button.innerHTML = `<span class="num">${String(systems.indexOf(system) + 1).padStart(2, '0')}</span><span class="pname">${system.short} <span style="color:#71869b;font-weight:600">· ${count}</span></span>`;
-      button.addEventListener('click', () => selectSystem(system.id, null));
+      button.className = 'part' + (mesh === selectedMesh ? ' active' : '');
+      button.type = 'button';
+      button.title = `${mesh.name || 'Unnamed mesh'} · ${system.name}`;
+      const number = document.createElement('span');
+      number.className = 'num';
+      number.textContent = String(meshes.indexOf(mesh) + 1).padStart(3, '0');
+      const labels = document.createElement('span');
+      labels.className = 'meshlabels';
+      const name = document.createElement('span');
+      name.className = 'pname';
+      name.textContent = humanName(mesh.name);
+      const group = document.createElement('span');
+      group.className = 'psystem';
+      group.textContent = system.short;
+      labels.append(name, group);
+      button.append(number, labels);
+      button.addEventListener('click', () => selectSystem(mesh.userData.systemId, mesh));
       partHost.appendChild(button);
     }
+
+    const counter = document.getElementById('partCount');
+    if (counter) counter.textContent = `${meshes.length} OBJECTS · ${filtered.length} MATCHED`;
+    const empty = document.getElementById('emptyParts');
+    if (empty) empty.classList.toggle('hidden', filtered.length !== 0);
   }
 
   function selectSystem(id, focusMesh) {
@@ -171,7 +204,7 @@
     document.getElementById('selAccuracy').textContent = system.accuracy;
     document.getElementById('selName').textContent = focusMesh ? humanName(focusMesh.name) : system.name;
     document.getElementById('selDesc').textContent = focusMesh
-      ? `${system.name} · source object “${focusMesh.name || 'unnamed'}”. The original object label is preserved from the downloaded model.`
+      ? `${system.name} · original source object: ${focusMesh.name || 'unnamed'}. This is a selectable mesh from the community model, not a verified factory part number.`
       : system.desc;
     highlightSelection();
     renderParts();
@@ -248,9 +281,15 @@
   document.getElementById('viewReset').addEventListener('click', () => setView('iso'));
 
   document.getElementById('togglePart').addEventListener('click', () => {
-    if (hiddenSystems.has(selectedSystem)) hiddenSystems.delete(selectedSystem);
-    else hiddenSystems.add(selectedSystem);
+    if (selectedMesh) {
+      if (hiddenMeshes.has(selectedMesh)) hiddenMeshes.delete(selectedMesh);
+      else hiddenMeshes.add(selectedMesh);
+    } else {
+      if (hiddenSystems.has(selectedSystem)) hiddenSystems.delete(selectedSystem);
+      else hiddenSystems.add(selectedSystem);
+    }
     applyVisibility();
+    renderParts();
   });
   document.getElementById('isolate').addEventListener('click', () => {
     isolated = !isolated;
@@ -270,6 +309,8 @@
     document.querySelectorAll('.tab').forEach(tab => tab.classList.toggle('active', tab === button));
     renderParts();
   });
+
+  document.getElementById('meshSearch').addEventListener('input', renderParts);
 
   let downPoint = null;
   canvas.addEventListener('pointerdown', event => { downPoint = { x: event.clientX, y: event.clientY }; }, { passive: true });
