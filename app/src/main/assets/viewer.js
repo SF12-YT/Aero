@@ -20,7 +20,8 @@
     { id: 'cell', category: 'CHASSIS', label: 'PRIMARY STRUCTURE', name: 'Survival cell', short: 'Survival cell', accuracy: 'SOURCE MESH GROUP', desc: 'Meshes grouped under the source safetycell hierarchy. This is a visual model, not structural or crash-certification data.', explode: [0, 0.35, 0] },
     { id: 'suspension', category: 'SUSPENSION', label: 'SUSPENSION', name: 'Suspension & steering links', short: 'Suspension', accuracy: 'SOURCE MESH GROUP', desc: 'Front and rear suspension/steering meshes identified by their LF, RF, LR and RR parent groups.', explode: [0, 0, 0.75] },
     { id: 'wheels', category: 'SUSPENSION', label: 'ROTATING ASSEMBLIES', name: 'Wheels & hubs', short: 'Wheels / hubs', accuracy: 'SOURCE MESH GROUP', desc: 'Four wheel and hub assemblies, with individual mesh objects retained for selection.', explode: [0, 0, 1.05] },
-    { id: 'brakes', category: 'MECHANICAL', label: 'BRAKE HARDWARE', name: 'Brake callipers', short: 'Brake callipers', accuracy: 'SOURCE MESH GROUP', desc: 'Calliper meshes identified by the source CALIPER_* hierarchy. The archive does not provide a verified technical specification.', explode: [0, 0.15, 0.65] }
+    { id: 'brakes', category: 'MECHANICAL', label: 'BRAKE HARDWARE', name: 'Brake callipers', short: 'Brake callipers', accuracy: 'SOURCE MESH GROUP', desc: 'Calliper meshes identified by the source CALIPER_* hierarchy. The archive does not provide a verified technical specification.', explode: [0, 0.15, 0.65] },
+    { id: 'power', category: 'POWERTRAIN', label: '2025 HYBRID POWER UNIT', name: 'Honda RBPTH003 · 1.6L V6 hybrid', short: 'Power unit', accuracy: 'PUBLIC ARCHITECTURE · VISUAL STUDY', desc: 'Honda identifies the RB21 unit as the RBPTH003: a 1,600 cc, 90-degree V6 with turbocharger, MGU-K and MGU-H. Honda lists 15,000 rpm maximum engine speed, 125,000 rpm MGU-H speed and 160 bhp maximum MGU-K output. The assembly below uses the 2025 FIA layout constraints. Component contours, hidden internals and exact RB21 installation positions are reference-led estimates, not Honda or Red Bull CAD.', explode: [0, 0.65, 0] }
   ];
   const systemById = Object.fromEntries(systems.map(s => [s.id, s]));
   const meshes = [];
@@ -79,6 +80,7 @@
 
   function classify(object) {
     const names = allNames(object);
+    if (/POWERTRAIN|POWER_UNIT|TURBO|MGU[-_ ]?[HK]|EXHAUST|GEARBOX|ENGINE(?![_ ]?COVER|COVER)/.test(names)) return 'power';
     if (/CALIPER_(RF|LF|RR|LR)/.test(names)) return 'brakes';
     if (/WHEEL_(RF|LF|RR|LR)|HUB_(RF|LF|RR|LR)/.test(names)) return 'wheels';
     if (/SUSP_(RF|LF|RR|LR)|STEER_(RF|LF|RR|LR)/.test(names)) return 'suspension';
@@ -200,12 +202,15 @@
     selectedSystem = id;
     selectedMesh = focusMesh || null;
     const system = systemById[id];
-    document.getElementById('selCategory').textContent = system.label;
-    document.getElementById('selAccuracy').textContent = system.accuracy;
+    const componentInfo = focusMesh?.userData?.componentInfo;
+    document.getElementById('selCategory').textContent = componentInfo?.label || system.label;
+    document.getElementById('selAccuracy').textContent = componentInfo?.accuracy || system.accuracy;
     document.getElementById('selName').textContent = focusMesh ? humanName(focusMesh.name) : system.name;
-    document.getElementById('selDesc').textContent = focusMesh
-      ? `${system.name} · original source object: ${focusMesh.name || 'unnamed'}. This is a selectable mesh from the community model, not a verified factory part number.`
-      : system.desc;
+    document.getElementById('selDesc').textContent = componentInfo
+      ? componentInfo.description
+      : focusMesh
+        ? `${system.name} · original source object: ${focusMesh.name || 'unnamed'}. This is a selectable mesh from the community model, not a verified factory part number.`
+        : system.desc;
     highlightSelection();
     renderParts();
     applyVisibility();
@@ -330,7 +335,7 @@
   function registerMeshes(root) {
     root.traverse(object => {
       if (!object.isMesh) return;
-      const id = classify(object);
+      const id = object.userData.systemId || classify(object);
       object.userData.systemId = id;
       object.userData.basePosition = object.position.clone();
       object.userData.originalMaterial = null;
@@ -354,14 +359,21 @@
     const modelUrl = new URL('models/rb21.glb', document.baseURI).href;
     loader.load(modelUrl, gltf => {
       carRoot = gltf.scene;
-      scene.add(carRoot);
-      registerMeshes(carRoot);
-
       const bounds = new THREE.Box3().setFromObject(carRoot);
       const size = bounds.getSize(new THREE.Vector3());
       const center = bounds.getCenter(new THREE.Vector3());
       maxModelDimension = Math.max(size.x, size.y, size.z, 0.1);
       lengthAxis = size.x >= size.z ? 'x' : 'z';
+
+      // Add a separate, individually selectable RBPTH003 layout study to the
+      // existing car scene before applying the same model normalisation.
+      if (window.AeroPowerUnit && typeof window.AeroPowerUnit.build === 'function') {
+        const powerUnit = window.AeroPowerUnit.build({ bounds, size, lengthAxis });
+        if (powerUnit) carRoot.add(powerUnit);
+      }
+      scene.add(carRoot);
+      registerMeshes(carRoot);
+
       const scale = 5.5 / maxModelDimension;
       carRoot.scale.multiplyScalar(scale);
       carRoot.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
