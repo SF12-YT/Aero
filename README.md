@@ -72,3 +72,8 @@ AeroLab25/
 3. Add source records per component: regulation/article, public image/drawing, measured estimate, and confidence score.
 4. Add selection directly on the 3D geometry, sectional/cutaway views, and assembly constraints.
 5. Progressively increase part granularity, including fasteners, without implying undocumented internal geometry is exact.
+
+
+## CI workflow fix (0.1.1)
+
+The GitHub Actions workflow no longer invokes `android-actions/setup-android@v3`. That action attempted to install the retired Android SDK `tools` package and failed inside `sdkmanager`. The workflow now uses the Android command-line tools already present on the pinned `ubuntu-24.04` runner, installs only `platform-tools`, `platforms;android-35`, and `build-tools;35.0.0`, and upgrades checkout/setup-java to their Node 24-compatible major versions.
