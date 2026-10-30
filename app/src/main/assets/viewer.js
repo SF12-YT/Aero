@@ -305,8 +305,13 @@
 
   function loadModel() {
     setStatus('LOADING RB21 MODEL…');
-    const loader = new THREE.GLTFLoader();
-    loader.load('models/rb21.glb', gltf => {
+    const manager = new THREE.LoadingManager();
+    manager.onError = url => {
+      console.error('AeroLab asset request failed:', url);
+    };
+    const loader = new THREE.GLTFLoader(manager);
+    const modelUrl = new URL('models/rb21.glb', document.baseURI).href;
+    loader.load(modelUrl, gltf => {
       carRoot = gltf.scene;
       scene.add(carRoot);
       registerMeshes(carRoot);
@@ -354,10 +359,13 @@
     }, xhr => {
       if (xhr.total > 0) setStatus(`LOADING MODEL · ${Math.round(xhr.loaded / xhr.total * 100)}%`);
     }, error => {
-      console.error('RB21 GLB load failed', error);
+      const detail = error && (error.message || error.type || error.statusText)
+        ? (error.message || error.type || error.statusText)
+        : 'asset request or GLB parsing error';
+      console.error('RB21 GLB load failed:', detail, error);
       setStatus('MODEL LOAD FAILED');
       document.getElementById('selName').textContent = 'Model could not be loaded';
-      document.getElementById('selDesc').textContent = 'The local GLB asset is missing or could not be parsed. Run the Gradle build again with an internet connection so the model assets can be prepared.';
+      document.getElementById('selDesc').textContent = `The bundled model could not be read from ${modelUrl}. ${detail}. Check the Android log for the exact asset error.`;
     });
   }
 

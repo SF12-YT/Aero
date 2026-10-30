@@ -1,10 +1,13 @@
 # AeroLab 25 — RB21 model viewer (Android)
 
-AeroLab 25 is an offline Android viewer for a detailed community 3D model published as **F1-2025 Redbull RB21**. It uses a native Android WebView shell and a local Three.js / WebGL scene. The GLB is bundled into the APK during the build; the installed app does not need a network connection to display the car.
+AeroLab 25 is an offline Android viewer for a detailed community 3D model published as **F1-2025 Redbull RB21**. It uses a native Android WebView shell and a local Three.js / WebGL scene. The GLB is packaged as an Android app asset inside the APK; the installed app does not need a network connection to display the car.
 
-## Revision 0.4.0
+## Revision 0.4.1
 
-This revision replaces the earlier procedural exterior with the downloaded multi-object GLB model. The app preserves the source mesh names and creates a practical system grouping layer for inspection.
+This revision keeps the downloaded multi-object GLB as a packaged Android asset and fixes how Android WebView serves that local binary file to Three.js. The app preserves the source mesh names and creates a practical system grouping layer for inspection.
+
+
+This revision fixes local GLB loading in Android WebView. The GLB remains a normal Android APK asset (not an internet-hosted model). The app now serves assets from `AssetManager` under the virtual HTTPS origin `https://appassets.androidplatform.net/assets/`, so Three.js can request the binary GLB using XHR without `file://` origin restrictions. File access from arbitrary local paths is disabled.
 
 ### Inspected model package
 
@@ -54,7 +57,7 @@ Requirements: Java 17, Gradle 8.9 (or compatible), Android SDK platform 35 and A
 gradle --no-daemon assembleDebug
 ```
 
-**The first build needs internet access.** A Gradle preparation task downloads the public GitHub Release archive, verifies its SHA-256 checksum, extracts the embedded GLB and downloads the pinned Three.js r145 browser scripts. These files are placed in generated Android assets and bundled into the APK. The model is not fetched at app runtime; the installed APK works offline.
+**The first build needs internet access.** A Gradle preparation task downloads the public GitHub Release archive, verifies its SHA-256 checksum, extracts the embedded GLB and downloads the pinned Three.js r145 browser scripts. These files are placed in generated Android assets and bundled into the APK. The Android WebView serves them from the APK AssetManager through a same-origin virtual HTTPS URL (`appassets.androidplatform.net`). This avoids `file://` origin restrictions that can prevent Three.js `GLTFLoader` from requesting a local binary file. The model and viewer libraries are not fetched at app runtime; the installed APK works offline.
 
 The model release is kept outside the Git repository to avoid committing a 124 MB binary asset:
 
@@ -71,10 +74,12 @@ AeroLab25/
 ├── app/src/main/assets/
 │   ├── index.html        # viewer interface
 │   └── viewer.js         # Three.js scene, model loading and interactions
+│   # Build-generated assets: models/rb21.glb and vendor/*.js
 ├── app/src/main/java/    # Android WebView shell
 ├── docs/
 │   ├── ATTRIBUTION.md
 │   └── REFERENCE_REGISTER.md
+├── THIRD_PARTY_NOTICES.md
 └── .github/workflows/
     └── android.yml
 ```

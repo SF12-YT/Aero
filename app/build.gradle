@@ -15,8 +15,8 @@ android {
         applicationId 'com.sf12.f1garage'
         minSdk 26
         targetSdk 34
-        versionCode 4
-        versionName '0.4.0'
+        versionCode 5
+        versionName '0.4.1'
     }
 
     sourceSets {
@@ -72,7 +72,7 @@ tasks.register('prepareAeroAssets') {
             def connection = new URL(address).openConnection()
             connection.setConnectTimeout(30000)
             connection.setReadTimeout(180000)
-            connection.setRequestProperty('User-Agent', 'AeroLab25-Android-Build/0.4.0')
+            connection.setRequestProperty('User-Agent', 'AeroLab25-Android-Build/0.4.1')
             File temporary = new File(destination.parentFile, destination.name + '.part')
             try {
                 connection.getInputStream().withCloseable { input ->
@@ -123,7 +123,7 @@ tasks.register('prepareAeroAssets') {
         download(threeBase + 'examples/js/loaders/GLTFLoader.js', new File(vendorDir, 'GLTFLoader.js'))
         download(threeBase + 'examples/js/controls/OrbitControls.js', new File(vendorDir, 'OrbitControls.js'))
 
-        logger.lifecycle("AeroLab assets ready: ${glbFile.length()} byte GLB, Three.js r145 viewer libraries.")
+        logger.lifecycle("AeroLab assets ready: ${glbFile.length()} byte GLB, Three.js r145 viewer libraries (bundled in APK assets).")
     }
 }
 
