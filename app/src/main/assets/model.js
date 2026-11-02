@@ -1,4 +1,4 @@
-/* AeroLab 25 — RB21 exterior reconstruction study, revision 0.6.0.
+/* AeroLab 25 — RB21 exterior reconstruction study, revision 0.7.0.
  * Coordinate convention: +X = nose, +Y = up, +/-Z = left/right.
  * Geometry is built from smooth section lofts, swept aerofoils and shaped struts.
  * It is a photo/reference reconstruction, not Red Bull CAD or a certified replica.
@@ -217,18 +217,53 @@ for(const s of [-1,1]){
 grid('floor',32,20,(u,v)=>{const x=-1.13-u*.90,z=(v*2-1)*(.54+.23*u),rise=.02+.17*Math.pow(u,1.45)*(1-.22*Math.abs(v*2-1));return[x,.145+rise,z];},C.carbon2);
 loft('floor',[[.78,.09,0,.14,.018],[.10,.09,0,.17,.02],[-.68,.09,0,.18,.02],[-1.42,.12,0,.16,.025],[-1.92,.18,0,.12,.03]],C.black,32,2.5);
 
-// 4. Front wing: three distinct swept elements with controlled 2 m span.
-airfoil('frontWing',2.80,.62,.145,1.96,.105,C.carbon2,.065,.16);
-airfoil('frontWing',2.64,.43,.225,1.91,.085,C.navy3,.06,.12);
-airfoil('frontWing',2.48,.29,.300,1.78,.070,C.carbon2,.05,.09);
-for(const s of [-1,1]){
- grid('frontWing',24,18,(u,v)=>{const y=.115+v*(.385-.075*u),x=2.84-u*(.275-.105*v)+.045*Math.sin(v*Math.PI)-.025*v*v;return[x,y,s*(.946+.012*u)];},C.carbon2);
- tubePath('frontWing',[[2.82,.115,s*.958],[2.84,.23,s*.96],[2.78,.37,s*.96],[2.63,.49,s*.958],[2.48,.46,s*.958],[2.37,.30,s*.958]],.012,C.carbon3,9,.50);
- tubePath('frontWing',[[2.57,.24,s*.78],[2.44,.34,s*.68],[2.27,.37,s*.59]],.012,C.carbon3,8,.42);
- // Carbon mounting pylon from nose to mainplane.
- tubePath('frontWing',[[1.92,.43,s*.12],[2.18,.32,s*.12],[2.43,.19,s*.13],[2.62,.145,s*.14]],.026,C.carbon3,10,.46);
+// 4. Front wing: separate multi-element profiles, compound sweep and shaped endplates.
+// Mainplane and two flap elements are independent aerofoils with visible slot gaps.
+airfoil('frontWing',2.91,.66,.145,1.94,.086,C.carbon2,.060,.245);
+airfoil('frontWing',2.66,.405,.238,1.89,.064,C.navy3,.052,.185);
+airfoil('frontWing',2.49,.285,.319,1.76,.049,C.carbon2,.044,.145);
+// A small trailing-edge gurney lip follows the centre section.
+const wingLip=[];
+for(let i=0;i<=20;i++){
+ const q=-.82+i*1.64/20,aq=Math.abs(q);
+ wingLip.push([2.245+.11*aq*aq,.154+.024*aq*aq,q*.94]);
 }
-
+tubePath('frontWing',wingLip,.008,C.carbon3,8,.34);
+for(const s of [-1,1]){
+ // Sculpted outer endplate: swept leading edge, bowed upper edge and a rearward kick.
+ const endPlate=(u,v)=>[
+  2.88-.56*u-.105*Math.pow(v,1.25)+.028*Math.sin(Math.PI*v)*(1-u),
+  .132+.365*v-.022*u+.012*Math.sin(Math.PI*u),
+  s*(.951+.014*Math.sin(Math.PI*u)-.006*v)
+ ];
+ grid('frontWing',36,22,endPlate,C.carbon2);
+ // Thin inner face gives the endplate a real carbon-laminate thickness.
+ grid('frontWing',36,22,(u,v)=>{const p=endPlate(u,v);p[2]-=s*.012;return p;},C.carbon3);
+ // Curved lower footplate, extending from the endplate onto the outer wing section.
+ grid('frontWing',30,10,(u,v)=>{
+  const x=2.86-.59*u+.025*Math.sin(Math.PI*u);
+  const z=s*(.72+.238*v);
+  const y=.139+.018*Math.sin(Math.PI*u)*(1-.24*v)-.012*u;
+  return[x,y,z];
+ },C.navy3);
+ // Endplate rear return and upper lip.
+ tubePath('frontWing',[[2.32,.14,s*.955],[2.27,.22,s*.955],[2.29,.34,s*.955],[2.39,.45,s*.955],[2.55,.49,s*.955]],.011,C.carbon3,9,.32);
+ tubePath('frontWing',[[2.88,.13,s*.955],[2.90,.23,s*.956],[2.85,.37,s*.957],[2.73,.48,s*.957]],.010,C.carbon3,9,.30);
+ // Narrow vertical fences divide the flap channels; their curved profiles follow the wing.
+ for(const zf of [.36,.59,.79]){
+  grid('frontWing',18,12,(u,v)=>{
+   const x=2.76-.39*u-.025*v+.018*Math.sin(Math.PI*v);
+   const y=.166+.155*v-.018*u;
+   return[x,y,s*zf];
+  },C.carbon3);
+ }
+ // Small flap adjuster brackets and outer support struts.
+ for(const zf of [.67,.82]){
+  tubePath('frontWing',[[2.57,.245,s*zf],[2.51,.285,s*zf],[2.43,.319,s*zf]],.009,C.steelHi,8,.34);
+ }
+ // Two carbon mounting pylons from the nose structure to the mainplane.
+ tubePath('frontWing',[[1.92,.43,s*.12],[2.13,.34,s*.13],[2.35,.235,s*.14],[2.60,.155,s*.16]],.025,C.carbon3,10,.42);
+}
 // 5. Rear wing and beam wing; narrow, high and supported by the rear structure.
 airfoil('rearWing',-2.78,.58,.855,1.90,.105,C.carbon2,.065,.13,{dir:1});
 airfoil('rearWing',-2.70,.39,.955,1.84,.078,C.navy3,.055,.10,{dir:1});
