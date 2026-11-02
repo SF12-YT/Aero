@@ -25,7 +25,7 @@ def make_texture(image):
     tex=vtk.vtkTexture();tex.SetInputData(img);tex.InterpolateOn();tex.RepeatOff();return tex
 textures={'side':make_texture(side_im),'cover':make_texture(cover_im),'tyre':make_texture(tyre_im)}
 
-def build_scene(camera):
+def build_scene(camera,view_up=(0,1,0)):
  r=vtk.vtkRenderer();r.SetBackground(.025,.04,.065);r.SetBackground2(.06,.09,.13);r.GradientBackgroundOn()
  for group,meshes in J.items():
   if group in ('power','gearbox','cooling'):
@@ -46,10 +46,11 @@ def build_scene(camera):
  plane=vtk.vtkPlaneSource();plane.SetOrigin(-4,-.025,-4);plane.SetPoint1(4,-.025,-4);plane.SetPoint2(-4,-.025,4);plane.Update();pm=vtk.vtkPolyDataMapper();pm.SetInputConnection(plane.GetOutputPort());pa=vtk.vtkActor();pa.SetMapper(pm);pa.GetProperty().SetColor(.035,.05,.07);r.AddActor(pa)
  light=vtk.vtkLight();light.SetPosition(3,6,4);light.SetFocalPoint(0,.4,0);light.SetIntensity(1.1);r.AddLight(light)
  light2=vtk.vtkLight();light2.SetPosition(-4,2,-3);light2.SetFocalPoint(0,.5,0);light2.SetIntensity(.7);r.AddLight(light2)
- c=vtk.vtkCamera();c.SetPosition(*camera[0]);c.SetFocalPoint(*camera[1]);c.SetViewUp(0,1,0);c.SetViewAngle(37);r.SetActiveCamera(c);return r
+ c=vtk.vtkCamera();c.SetPosition(*camera[0]);c.SetFocalPoint(*camera[1]);c.SetViewUp(*view_up);c.SetViewAngle(37);r.SetActiveCamera(c);return r
 
-def render(camera,path):
- r=build_scene(camera);w=vtk.vtkRenderWindow();w.SetOffScreenRendering(1);w.SetSize(1400,900);w.AddRenderer(r);w.Render();cap=vtk.vtkWindowToImageFilter();cap.SetInput(w);cap.SetInputBufferTypeToRGBA();cap.ReadFrontBufferOff();cap.Update();writer=vtk.vtkPNGWriter();writer.SetFileName(path);writer.SetInputConnection(cap.GetOutputPort());writer.Write();w.Finalize()
+def render(camera,path,view_up=(0,1,0)):
+ r=build_scene(camera,view_up);w=vtk.vtkRenderWindow();w.SetOffScreenRendering(1);w.SetSize(1400,900);w.AddRenderer(r);w.Render();cap=vtk.vtkWindowToImageFilter();cap.SetInput(w);cap.SetInputBufferTypeToRGBA();cap.ReadFrontBufferOff();cap.Update();writer=vtk.vtkPNGWriter();writer.SetFileName(path);writer.SetInputConnection(cap.GetOutputPort());writer.Write();w.Finalize()
 render(((4.9,3.2,5.8),(0,.48,0)),'/mnt/data/AeroLab25/rb21-vtk-iso.png')
 render(((0,1.3,8),(0,.48,0)),'/mnt/data/AeroLab25/rb21-vtk-side.png')
 render(((8,1.2,0),(0,.48,0)),'/mnt/data/AeroLab25/rb21-vtk-front.png')
+render(((0,9.2,0),(0,.48,0)),'/mnt/data/AeroLab25/rb21-vtk-top.png',(1,0,0))
