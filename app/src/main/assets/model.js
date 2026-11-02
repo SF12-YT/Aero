@@ -1,4 +1,4 @@
-/* AeroLab 25 — RB21 exterior reconstruction study, revision 0.7.0.
+/* AeroLab 25 — RB21 exterior reconstruction study, revision 0.8.0.
  * Coordinate convention: +X = nose, +Y = up, +/-Z = left/right.
  * Geometry is built from smooth section lofts, swept aerofoils and shaped struts.
  * It is a photo/reference reconstruction, not Red Bull CAD or a certified replica.
@@ -264,18 +264,49 @@ for(const s of [-1,1]){
  // Two carbon mounting pylons from the nose structure to the mainplane.
  tubePath('frontWing',[[1.92,.43,s*.12],[2.13,.34,s*.13],[2.35,.235,s*.14],[2.60,.155,s*.16]],.025,C.carbon3,10,.42);
 }
-// 5. Rear wing and beam wing; narrow, high and supported by the rear structure.
-airfoil('rearWing',-2.78,.58,.855,1.90,.105,C.carbon2,.065,.13,{dir:1});
-airfoil('rearWing',-2.70,.39,.955,1.84,.078,C.navy3,.055,.10,{dir:1});
-airfoil('rearWing',-2.18,.42,.535,1.70,.072,C.carbon3,.045,.07,{dir:1});
+// 5. Rear wing: independent mainplane, DRS flap, beam wing and sculpted endplates.
+airfoil('rearWing',-2.82,.60,.765,1.88,.086,C.carbon2,.058,.135,{dir:1});
+airfoil('rearWing',-2.72,.405,.914,1.79,.061,C.navy3,.064,.092,{dir:1});
+airfoil('rearWing',-2.18,.405,.525,1.67,.060,C.carbon3,.044,.072,{dir:1});
 for(const s of [-1,1]){
- grid('rearWing',24,18,(u,v)=>{const y=.535+v*(.415-.035*u),x=-2.80+u*(.245+.07*v)+.04*Math.sin(v*Math.PI)-.018*v*v;return[x,y,s*(.925+.012*u)];},C.carbon2);
- tubePath('rearWing',[[-2.79,.535,s*.944],[-2.78,.70,s*.945],[-2.70,.89,s*.945],[-2.57,.985,s*.945],[-2.37,.99,s*.945],[-2.28,.91,s*.945]],.010,C.red,8,.5);
- tubePath('rearWing',[[-2.05,.48,s*.12],[-2.26,.66,s*.12],[-2.47,.84,s*.12],[-2.66,.90,s*.12]],.032,C.carbon3,10,.48);
+ // Curved full-height rear-wing endplate with a forward toe and swept upper corner.
+ const rearPlate=(u,v)=>[
+  -2.84+.655*u+.055*Math.sin(Math.PI*v)*(1-u)-.018*v,
+  .475+.565*v-.028*u+.018*Math.sin(Math.PI*u),
+  s*(.936+.014*Math.sin(Math.PI*v)-.006*u)
+ ];
+ grid('rearWing',38,26,rearPlate,C.carbon2);
+ grid('rearWing',38,26,(u,v)=>{const p=rearPlate(u,v);p[2]-=s*.014;return p;},C.carbon3);
+ // Endplate leading/trailing rolled edges and upper gurney lip.
+ tubePath('rearWing',[[-2.84,.475,s*.936],[-2.83,.64,s*.938],[-2.79,.82,s*.941],[-2.72,1.00,s*.944],[-2.57,1.035,s*.944]],.010,C.carbon3,9,.30);
+ tubePath('rearWing',[[-2.19,.50,s*.936],[-2.18,.65,s*.938],[-2.22,.82,s*.941],[-2.29,.97,s*.944]],.009,C.carbon3,8,.28);
+ tubePath('rearWing',[[-2.18,1.015,s*.944],[-2.32,1.025,s*.944],[-2.48,1.025,s*.944],[-2.66,1.012,s*.944]],.007,C.carbon3,8,.25);
+ // Horizontal edgeplate slots and louvre details.
+ for(let i=0;i<4;i++){
+  const y=.60+i*.075,x0=-2.69+i*.025,x1=-2.34+i*.018;
+  tubePath('rearWing',[[x0,y,s*.952],[x0+.10,y+.012,s*.953],[x1,y+.008,s*.952]],.0055,C.black,7,.22);
+ }
+ // Vertical internal supports between the mainplane and DRS flap.
+ for(const zf of [.28,.58,.79]){
+  grid('rearWing',16,10,(u,v)=>{
+   const x=-2.70+.34*u-.025*v;
+   const y=.805+.145*v-.012*u;
+   return[x,y,s*zf];
+  },C.carbon3);
+ }
+ // Flap adjuster links.
+ for(const zf of [.19,.36]){
+  tubePath('rearWing',[[-2.65,.835,s*zf],[-2.58,.88,s*zf],[-2.48,.915,s*zf]],.008,C.steelHi,8,.34);
+ }
 }
-for(const s of [-1,1])tubePath('rearWing',[[-1.78,.58,s*.11],[-2.02,.70,s*.11],[-2.28,.86,s*.11],[-2.47,.90,s*.11]],.035,C.carbon2,10,.55);
-box('rearWing',-2.08,.39,0,.075,.10,.10,C.red);
-
+// Two swan-neck support pylons, attached forward of the DRS hinge line.
+for(const s of [-1,1]){
+ tubePath('rearWing',[[-2.32,.42,s*.115],[-2.39,.57,s*.115],[-2.50,.73,s*.115],[-2.60,.89,s*.115]],.030,C.carbon2,12,.55);
+ tubePath('rearWing',[[-2.24,.42,s*.13],[-2.29,.57,s*.13],[-2.38,.74,s*.13],[-2.47,.90,s*.13]],.018,C.carbon3,10,.45);
+}
+// Central DRS actuator fairing and rear rain-light housing.
+loft('rearWing',[[-2.48,.84,0,.045,.035],[-2.40,.88,0,.055,.045],[-2.29,.88,0,.038,.03]],C.carbon3,24,2.8);
+box('rearWing',-2.08,.385,0,.082,.115,.105,C.red);
 // 6. Halo, cockpit braces and mirrors.
 for(const s of [-1,1]){
  tubePath('halo',[[.34,.76,s*.12],[.29,.91,s*.20],[.04,1.015,s*.29],[-.35,1.02,s*.30],[-.60,.87,s*.22],[-.49,.79,s*.16]],.026,C.carbon3,12,.72);
