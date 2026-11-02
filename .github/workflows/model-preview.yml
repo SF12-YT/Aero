@@ -54,6 +54,7 @@ jobs:
             rb21-vtk-iso.png
             rb21-vtk-side.png
             rb21-vtk-front.png
+            rb21-vtk-top.png
             geometry-export.json
             geometry-stats.txt
           if-no-files-found: error
