@@ -1,4 +1,4 @@
-/* AeroLab 25 — RB21 exterior reconstruction study, revision 0.11.0.
+/* AeroLab 25 — RB21 exterior reconstruction study, revision 0.12.0.
  * Coordinate convention: +X = nose, +Y = up, +/-Z = left/right.
  * Geometry is built from smooth section lofts, swept aerofoils and shaped struts.
  * It is a photo/reference reconstruction, not Red Bull CAD or a certified replica.
@@ -375,6 +375,16 @@ for(const s of [-1,1]){
 }
 tubePath('halo',[[.34,.842,0],[.27,.932,0],[.03,1.015,0]],.032,C.carbon2,10,.7);
 tubePath('halo',[[-.35,1.020,-.30],[-.35,1.020,.30]],.028,C.carbon2,10,.7);
+// Neutral 2025-era driver helmet: compact oval shell, dark visor and crown stripe.
+// It is deliberately generic rather than copying a particular driver's helmet.
+sphere('halo',[-.13,.899,0],.125,C.navy3,[.92,1.02,.86],28,18);
+grid('halo',24,10,(u,v)=>{
+ const z=(u*2-1)*.102;
+ const y=.905+(v-.5)*.045+.008*(1-Math.pow(z/.102,2));
+ const q=Math.max(.05,1-Math.pow((y-.899)/.128,2)-Math.pow(z/.108,2));
+ return[-.13+.117*Math.sqrt(q)+.003,y,z];
+},C.black);
+tubePath('halo',[[-.015,.936,0],[-.045,.985,0],[-.115,1.014,0],[-.190,.995,0],[-.245,.946,0]],.010,C.yellow,9,.62);
 for(const s of [-1,1]){tubePath('halo',[[.28,.79,s*.22],[.44,.88,s*.36],[.56,.90,s*.50]],.012,C.carbon,8,.6);loft('halo',[[.46,.91,s*.48,.04,.025],[.58,.92,s*.53,.075,.04],[.68,.90,s*.53,.05,.03]],C.navy3,24,2.3);}
 
 // 7. Suspension: swept, flattened wishbone members and compact uprights.
