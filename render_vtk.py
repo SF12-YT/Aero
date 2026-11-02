@@ -28,6 +28,8 @@ textures={'side':make_texture(side_im),'cover':make_texture(cover_im),'tyre':mak
 def build_scene(camera):
  r=vtk.vtkRenderer();r.SetBackground(.025,.04,.065);r.SetBackground2(.06,.09,.13);r.GradientBackgroundOn()
  for group,meshes in J.items():
+  if group in ('power','gearbox','cooling'):
+   continue
   for m in meshes:
    p=np.array(m['positions'],dtype=np.float32).reshape(-1,3);tri=np.array(m['indices'],dtype=np.int64).reshape(-1,3)
    pts=vtk.vtkPoints();pts.SetData(numpy_to_vtk(p,deep=True));cells=vtk.vtkCellArray();legacy=np.hstack([np.full((len(tri),1),3),tri]).astype(np.int64).ravel();cells.SetCells(len(tri),numpy_to_vtkIdTypeArray(legacy,deep=True))

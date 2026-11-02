@@ -1,4 +1,4 @@
-/* AeroLab 25 — RB21 exterior reconstruction study, revision 0.9.0.
+/* AeroLab 25 — RB21 exterior reconstruction study, revision 0.10.0.
  * Coordinate convention: +X = nose, +Y = up, +/-Z = left/right.
  * Geometry is built from smooth section lofts, swept aerofoils and shaped struts.
  * It is a photo/reference reconstruction, not Red Bull CAD or a certified replica.
@@ -30,7 +30,7 @@ const defs=[
 {id:'gearbox',name:'Gearbox & drivetrain',short:'Gearbox',category:'MECHANICAL',label:'TRANSMISSION',accuracy:'LAYOUT STUDY',desc:'Tapered gearbox, differential and driveshaft interface, simplified for assembly-view exploration.',off:[-.42,.04,0]},
 {id:'cooling',name:'Cooling systems',short:'Cooling',category:'MECHANICAL',label:'THERMAL SYSTEMS',accuracy:'LAYOUT STUDY',desc:'Radiator cores and ducting tucked inside the sidepod envelope; visible when outer bodywork is hidden.',off:[0,.02,.62]}
 ];
-const groups={};for(const d of defs)groups[d.id]={def:d,meshes:[],visible:true};
+const groups={};for(const d of defs)groups[d.id]={def:d,meshes:[],visible:!['power','gearbox','cooling'].includes(d.id)};
 let selected='sidepods',exploded=false,isolated=false;
 
 function addMesh(g,P,I,color,UV=null,textured=false,textureKey='side'){
@@ -254,7 +254,7 @@ for(const s of [-1,1]){
  for(let i=0;i<7;i++){const x=-1.02-i*.075,y=.72-i*.022; tubePath('sidepods',[[x+.035,y,s*.14],[x-.035,y+.002,s*.14]],.009,C.carbon3,7,.32);}
 }
 // Exhaust outlet.
-cylinder('power',[-1.95,.535,0],[-2.28,.535,0],.052,.047,C.steel,24);
+cylinder('sidepods',[-1.95,.535,0],[-2.28,.535,0],.052,.047,C.steel,24);
 
 // 3. Floor, twin tunnel outer walls and expanded diffuser.
 loft('floor',[[1.02,.145,0,.68,.038],[.64,.135,0,.89,.042],[.16,.13,0,.95,.045],[-.46,.125,0,.94,.045],[-1.06,.13,0,.88,.05],[-1.58,.16,0,.76,.065],[-1.98,.22,0,.53,.08]],C.carbon,56,3.2);
