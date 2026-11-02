@@ -88,7 +88,6 @@ function makeCoverTexture(){const c=document.createElement('canvas');c.width=512
 function makeTyreTexture(){
  const c=document.createElement('canvas');c.width=1024;c.height=256;
  const x=c.getContext('2d');
- // Opaque rubber base keeps the shader's decal discard path from cutting holes in the tyre.
  x.fillStyle='#171b20';x.fillRect(0,0,1024,256);
  x.textAlign='center';x.textBaseline='middle';
  x.font='900 64px Arial, sans-serif';x.fillStyle='#e7c328';
@@ -124,14 +123,13 @@ function airfoil(g,lead,chord,y,span,thick,color,camber=.045,sweep=.08,opts={}){
  for(let k=0;k<ss;k++)for(let j=0;j<m;j++){const a=k*m+j,b=k*m+(j+1)%m,c=(k+1)*m+(j+1)%m,d=(k+1)*m+j;I.push(a,b,c,a,c,d);}addMesh(g,P,I,color);}
 function wheel(x,s,rear){
  const y=.365,z=s*.785,w=rear?.405:.305;
- // Slick carcass: rounded shoulders, defined sidewall and a broad continuous contact crown.
  const profile=[[-.50,.272],[-.475,.296],[-.43,.326],[-.35,.348],[-.22,.359],[0,.362],[.22,.359],[.35,.348],[.43,.326],[.475,.296],[.50,.272]];
  const P=[],I=[],UV=[],N=96,stride=N+1;
  for(let k=0;k<profile.length;k++){
   const[p,r]=profile[k];
   for(let j=0;j<=N;j++){
-   const a=j/N*Math.PI*2;
-   P.push(x+r*Math.cos(a),y+r*Math.sin(a),z+p*w);
+   const angle=j/N*Math.PI*2;
+   P.push(x+r*Math.cos(angle),y+r*Math.sin(angle),z+p*w);
    UV.push(j/N,k/(profile.length-1));
   }
  }
@@ -140,41 +138,256 @@ function wheel(x,s,rear){
   I.push(a,b,c,a,c,d);
  }
  addMesh('wheels',P,I,C.rubber,UV,true,'tyre');
- // Subtle moulded sidewall beads and shoulder witness lines on both faces.
  for(const side of [-1,1]){
   ringXY('wheels',x,y,z+side*w*.462,.302,.0035,C.rubber2,72,6);
   ringXY('wheels',x,y,z+side*w*.475,.282,.0025,C.rubber2,72,6);
  }
- // 18-inch wheel barrel, face dish and outer retaining rim.
  const face=z+s*(w*.5-.012);
  cylinder('wheels',[x,y,z+s*(w*.5-.090)],[x,y,z+s*(w*.5-.018)],.235,.235,C.rimDark,48);
  cylinder('wheels',[x,y,z+s*(w*.5-.098)],[x,y,z+s*(w*.5-.086)],.205,.205,C.carbon2,48);
  ringXY('wheels',x,y,z+s*(w*.5-.008),.255,.006,C.rimDark,64,8);
  ringXY('wheels',x,y,z+s*(w*.5-.094),.208,.004,C.steel,56,7);
- // Five broad spokes and a recessed centre-lock boss.
  for(let j=0;j<5;j++){
-  const a=j/5*Math.PI*2,aa=a+.19;
-  const p1=[x+Math.cos(a)*.078,y+Math.sin(a)*.078,face];
-  const p2=[x+Math.cos(aa)*.222,y+Math.sin(aa)*.222,face];
+  const angle=j/5*Math.PI*2,next=angle+.19;
+  const p1=[x+Math.cos(angle)*.078,y+Math.sin(angle)*.078,face];
+  const p2=[x+Math.cos(next)*.222,y+Math.sin(next)*.222,face];
   beam('wheels',p1,p2,.024,C.rimDark,12);
  }
  cylinder('wheels',[x,y,z+s*(w*.5-.115)],[x,y,z+s*(w*.5-.098)],.096,.096,C.steel,28);
  cylinder('wheels',[x,y,z+s*(w*.5-.122)],[x,y,z+s*(w*.5-.113)],.060,.060,C.gold,24);
  cylinder('wheels',[x,y,z+s*(w*.5-.127)],[x,y,z+s*(w*.5-.120)],.035,.035,C.yellow,24);
  for(let j=0;j<5;j++){
-  const a=j/5*Math.PI*2;
-  sphere('wheels',[x+Math.cos(a)*.073,y+Math.sin(a)*.073,z+s*(w*.5-.115)],.008,C.steelHi,[1,1,.55],8,6);
+  const angle=j/5*Math.PI*2;
+  sphere('wheels',[x+Math.cos(angle)*.073,y+Math.sin(angle)*.073,z+s*(w*.5-.115)],.008,C.steelHi,[1,1,.55],8,6);
  }
- // Ventilated carbon brake disc and its drilled cooling holes.
  cylinder('wheels',[x,y,z-s*w*.30],[x,y,z+s*w*.30],.224,.224,C.brake,44);
  for(let j=0;j<18;j++){
-  const a=j/18*Math.PI*2;
-  sphere('wheels',[x+Math.cos(a)*.174,y+Math.sin(a)*.174,z+s*(w*.30+.003)],.006,C.black,[1,1,.35],8,6);
+  const angle=j/18*Math.PI*2;
+  sphere('wheels',[x+Math.cos(angle)*.174,y+Math.sin(angle)*.174,z+s*(w*.30+.003)],.006,C.black,[1,1,.35],8,6);
  }
- // Compact calliper sits at the upper-rear quadrant of each disc.
  const calx=x+.12,caly=y+.10;
  cylinder('wheels',[calx-.07,caly,z+s*(w*.30)],[calx+.07,caly,z+s*(w*.30)],.062,.062,C.gold,18);
 }
+
+// 1. Primary survival-cell shell and long, shallow nose.
+// Separate vertical/lateral profiles, a narrower lower waist and a restrained
+// upper shoulder replace the single rounded section used in the first study.
+shellLoft('nose',[
+ [.98,.525,0,.255,.145],[.78,.54,0,.292,.165],[.50,.55,0,.322,.181],
+ [.18,.56,0,.337,.19],[-.16,.558,0,.337,.188],[-.50,.55,0,.322,.18],
+ [-.86,.535,0,.292,.165],[-1.16,.51,0,.245,.14],[-1.36,.49,0,.18,.105]
+],C.navy,80,3.05,2.85,.13,.065);
+shellLoft('nose',[
+ [2.60,.35,0,.013,.014],[2.52,.36,0,.028,.025],[2.34,.386,0,.06,.05],
+ [2.13,.412,0,.087,.072],[1.88,.444,0,.122,.098],[1.60,.478,0,.16,.125],
+ [1.30,.51,0,.207,.15],[1.06,.531,0,.245,.152],[.90,.535,0,.267,.15]
+],C.navy2,80,3.35,3.0,.035,.015);
+// Yellow upper nose panel with narrow shoulders and a slightly broader base.
+grid('nose',48,10,(u,v)=>{const x=.92+u*1.48,half=.155*(1-u)+.045,y=.715-.30*Math.pow(u,.84)+.024+.006*(1-Math.abs(v*2-1));return[x,y,(v*2-1)*half];},C.yellow);
+// Red upper nose flash and thin side pinstripes.
+tubePath('nose',[[2.38,.39,-.018],[2.16,.43,-.045],[1.88,.49,-.075],[1.54,.55,-.105],[1.18,.60,-.12]],.009,C.red,8,.55);
+tubePath('nose',[[2.38,.39,.018],[2.16,.43,.045],[1.88,.49,.075],[1.54,.55,.105],[1.18,.60,.12]],.009,C.red,8,.55);
+// Cockpit tub, dark aperture and raised rim.
+loft('nose',[[.25,.69,0,.27,.13],[-.12,.70,0,.30,.135],[-.48,.66,0,.26,.12]],C.carbon2,48,2.3);
+grid('nose',36,18,(u,v)=>{const a=u*Math.PI*2,r=.245*v;return[-.13+Math.cos(a)*r,.795,Math.sin(a)*.195*v];},C.black);
+tubePath('nose',[[.17,.80,0],[.13,.80,.17],[-.10,.80,.225],[-.40,.79,.18],[-.48,.79,0],[-.40,.79,-.18],[-.10,.80,-.225],[.13,.80,-.17],[.17,.80,0]],.018,C.navy3,10,.75);
+box('nose',-.16,.735,0,.32,.11,.19,C.black);
+// Camera pods, antenna and front chassis shoulders.
+for(const s of [-1,1]){beam('nose',[-.48,.68,s*.23],[-.59,.77,s*.28],.017,C.carbon3);sphere('nose',[-.59,.78,s*.28],.035,C.black,[1,.7,1.2],12,8);}
+beam('nose', [.66,.70,0],[.72,.84,0],.009,C.black,);
+
+// 2. RB21 sidepod shells, built to the high inlet / deep undercut / steep rear taper seen in 2025 reference views.
+const podSections=[
+ [.90,.482,.402,.192,.150],[.72,.500,.412,.248,.190],[.43,.492,.414,.302,.207],
+ [.10,.465,.397,.307,.190],[-.25,.435,.372,.270,.160],[-.58,.403,.339,.224,.132],
+ [-.90,.375,.302,.180,.108],[-1.20,.348,.258,.126,.078],[-1.46,.330,.210,.060,.043]
+];
+for(const s of [-1,1]){
+ const z=s*.405;
+ shellLoft('sidepods',podSections.map(([x,cy,cz,w,h])=>[x,cy,s*cz,w,h]),C.navy,96,POD_SHAPE_Y,POD_SHAPE_Z,POD_LOWER_PINCH,POD_UPPER_SHOULDER);
+ // The sidepod inlet is a wide, vertically flattened rounded rectangle, rather than a circular hole.
+ roundedRectYZ('sidepods',.892,.555,s*.414,.104,.235,.055,C.black);
+ tubePath('sidepods',[[.904,.657,s*.235],[.904,.679,s*.345],[.904,.665,s*.53],[.904,.615,s*.625],[.904,.535,s*.654],[.904,.455,s*.615],[.904,.405,s*.51],[.904,.405,s*.335],[.904,.455,s*.235]],.018,C.navy3,12,.78);
+ // Broad carbon lower-side panel creates the visible undercut instead of representing it as a round tube.
+ grid('sidepods',64,12,(u,v)=>{
+  const x=.56-u*1.94,top=.414-.030*u+.009*Math.sin(Math.PI*u),bottom=.309+.035*u;
+  const y=top*(1-v)+bottom*v;
+  return [x,y,podOuterZ(x,y,s,podSections)+s*.006];
+ },C.carbon);
+ // Fine lower return edge and its red highlight follow the sculpted side surface.
+ const edgePoints=[[.55,.412],[.25,.400],[-.08,.390],[-.42,.374],[-.78,.359],[-1.12,.346],[-1.37,.337]];
+ tubePath('sidepods',edgePoints.map(([x,y])=>[x,y,podOuterZ(x,y,s,podSections)+s*.013]),.010,C.carbon3,9,.36);
+ tubePath('sidepods',edgePoints.slice(0,6).map(([x,y],i)=>[x,y-.014,podOuterZ(x,y-.014,s,podSections)+s*.014]),.007,C.red,8,.32);
+ // Upper shoulder edge and the RB21's fine red / yellow livery sweep.
+ tubePath('sidepods',[[.58,.655,s*.51],[.34,.682,s*.60],[.02,.655,s*.61],[-.34,.59,s*.56],[-.72,.515,s*.47],[-1.10,.438,s*.36]],.012,C.navy3,9,.52);
+ tubePath('sidepods',[[.48,.602,s*.704],[.20,.625,s*.707],[-.12,.592,s*.672],[-.47,.535,s*.603],[-.82,.475,s*.518],[-1.10,.421,s*.402]],.014,C.red,10,.42);
+ tubePath('sidepods',[[.39,.66,s*.635],[.08,.653,s*.618],[-.24,.606,s*.56],[-.57,.535,s*.476],[-.86,.471,s*.39]],.009,C.yellow,8,.42);
+ // Cooling louvre slots on the aft shoulder.
+ for(let i=0;i<6;i++){const x=-.48-i*.105,y=.545-i*.027,zl=s*(.48-i*.035);tubePath('sidepods',[[x+.035,y,zl],[x-.045,y+.006,zl-.004*s]],.009,C.carbon3,7,.34);}
+ // Mirror stalk and compact sculpted mirror casing.
+ tubePath('sidepods',[[.43,.69,s*.33],[.49,.755,s*.48],[.55,.775,s*.63]],.013,C.carbon,8,.55);
+ loft('sidepods',[[.48,.78,s*.60,.035,.024],[.58,.79,s*.665,.075,.042],[.71,.775,s*.65,.046,.03]],C.navy3,32,2.55);
+ // Curved decal surface hugs the sidepod side; UV coordinates follow the actual loft contour.
+ decalSurface('sidepods',s,.46,-.92,.565,.455,.405,.345,(x,y,side)=>podOuterZ(x,y,side,podSections),[0,0,1,1],'side');
+}
+// Raised engine-cover spine and tail: smooth centreline taper to gearbox.
+const coverSections=[
+ [.22,.625,0,.252,.135],[-.15,.682,0,.292,.190],[-.50,.692,0,.270,.196],
+ [-.86,.650,0,.226,.172],[-1.20,.586,0,.170,.132],[-1.54,.520,0,.116,.091],
+ [-1.88,.468,0,.066,.055],[-2.08,.450,0,.040,.036]
+];
+shellLoft('sidepods',coverSections,C.navy2,88,4.15,3.2,.24,.065);
+for(const side of [-1,1])decalSurface('sidepods',side,-.28,-1.16,.795,.635,.675,.535,(x,y,sgn)=>{
+ const q=interpSection(coverSections,x),ny=Math.max(-.999,Math.min(.999,(y-q[1])/(q[4]||1)));
+ const norm=Math.pow(Math.max(0,1-Math.pow(Math.abs(ny),4.15)),1/3.2);
+ const pinch=1-.24*Math.pow(Math.max(0,-ny),2),shoulder=1+.065*Math.pow(Math.max(0,ny),2.4);
+ return sgn*(q[2]+q[3]*norm*pinch*shoulder+.010);
+},[0,0,1,1],'cover');
+// Airbox and roll-hoop fairing, with yellow upper surround.
+loft('sidepods',[[-.42,.81,0,.14,.10],[-.68,.875,0,.19,.13],[-.91,.85,0,.155,.11],[-1.08,.77,0,.105,.075]],C.navy,48,2.45);
+loft('sidepods',[[-.59,.965,0,.14,.035],[-.74,.99,0,.17,.045],[-.88,.965,0,.14,.04]],C.yellow,40,2.5);
+
+// Intake aperture on top of the airbox.
+grid('sidepods',26,14,(u,v)=>{const a=u*Math.PI*2,r=.12*v;return[-.74+Math.cos(a)*r,.999,Math.sin(a)*r*.72];},C.black);
+for(const s of [-1,1]){
+ tubePath('sidepods',[[-.38,.70,s*.26],[-.72,.68,s*.25],[-1.12,.59,s*.19],[-1.60,.50,s*.12],[-1.92,.47,s*.07]],.011,C.red2,8,.5);
+ for(let i=0;i<7;i++){const x=-1.02-i*.075,y=.72-i*.022; tubePath('sidepods',[[x+.035,y,s*.14],[x-.035,y+.002,s*.14]],.009,C.carbon3,7,.32);}
+}
+// Exhaust outlet.
+cylinder('power',[-1.95,.535,0],[-2.28,.535,0],.052,.047,C.steel,24);
+
+// 3. Floor, twin tunnel outer walls and expanded diffuser.
+loft('floor',[[1.02,.145,0,.68,.038],[.64,.135,0,.89,.042],[.16,.13,0,.95,.045],[-.46,.125,0,.94,.045],[-1.06,.13,0,.88,.05],[-1.58,.16,0,.76,.065],[-1.98,.22,0,.53,.08]],C.carbon,56,3.2);
+for(const s of [-1,1]){
+ tubePath('floor',[[.78,.12,s*.28],[.34,.105,s*.34],[-.24,.105,s*.36],[-.86,.12,s*.39],[-1.43,.19,s*.47],[-1.97,.30,s*.48]],.019,C.carbon3,9,.42);
+ tubePath('floor',[[.72,.16,s*.72],[.22,.15,s*.83],[-.42,.15,s*.84],[-1.05,.17,s*.78],[-1.62,.24,s*.65],[-1.95,.34,s*.51]],.022,C.navy3,9,.45);
+ // Floor-edge wing and rearward upsweep.
+ loft('floor',[[.63,.185,s*.865,.048,.028],[.10,.185,s*.89,.06,.035],[-.58,.19,s*.84,.065,.04],[-1.22,.22,s*.74,.06,.05],[-1.83,.30,s*.58,.045,.065]],C.carbon2,28,2.5);
+ // Four thin, separate floor fences.
+ for(let i=0;i<4;i++){const x=.40-i*.39,zf=s*(.28+i*.105);tubePath('floor',[[x,.13,zf],[x-.05,.23,zf+s*.025],[x-.18,.23,zf+s*.055]],.012,C.carbon3,7,.25);}
+ // Diffuser strakes.
+ for(let i=0;i<4;i++){const zf=s*(.12+i*.13);tubePath('floor',[[-1.30,.17,zf],[-1.58,.245,zf],[-1.83,.34,zf],[-2.02,.385,zf]],.010,C.steel,7,.28);}
+}
+grid('floor',32,20,(u,v)=>{const x=-1.13-u*.90,z=(v*2-1)*(.54+.23*u),rise=.02+.17*Math.pow(u,1.45)*(1-.22*Math.abs(v*2-1));return[x,.145+rise,z];},C.carbon2);
+loft('floor',[[.78,.09,0,.14,.018],[.10,.09,0,.17,.02],[-.68,.09,0,.18,.02],[-1.42,.12,0,.16,.025],[-1.92,.18,0,.12,.03]],C.black,32,2.5);
+
+// 4. Front wing: separate multi-element profiles, compound sweep and shaped endplates.
+// Mainplane and two flap elements are independent aerofoils with visible slot gaps.
+airfoil('frontWing',2.91,.66,.145,1.94,.086,C.carbon2,.060,.245);
+airfoil('frontWing',2.66,.405,.238,1.89,.064,C.navy3,.052,.185);
+airfoil('frontWing',2.49,.285,.319,1.76,.049,C.carbon2,.044,.145);
+// A small trailing-edge gurney lip follows the centre section.
+const wingLip=[];
+for(let i=0;i<=20;i++){
+ const q=-.82+i*1.64/20,aq=Math.abs(q);
+ wingLip.push([2.245+.11*aq*aq,.154+.024*aq*aq,q*.94]);
+}
+tubePath('frontWing',wingLip,.008,C.carbon3,8,.34);
+for(const s of [-1,1]){
+ // Sculpted outer endplate: swept leading edge, bowed upper edge and a rearward kick.
+ const endPlate=(u,v)=>[
+  2.88-.56*u-.105*Math.pow(v,1.25)+.028*Math.sin(Math.PI*v)*(1-u),
+  .132+.365*v-.022*u+.012*Math.sin(Math.PI*u),
+  s*(.951+.014*Math.sin(Math.PI*u)-.006*v)
+ ];
+ grid('frontWing',36,22,endPlate,C.carbon2);
+ // Thin inner face gives the endplate a real carbon-laminate thickness.
+ grid('frontWing',36,22,(u,v)=>{const p=endPlate(u,v);p[2]-=s*.012;return p;},C.carbon3);
+ // Curved lower footplate, extending from the endplate onto the outer wing section.
+ grid('frontWing',30,10,(u,v)=>{
+  const x=2.86-.59*u+.025*Math.sin(Math.PI*u);
+  const z=s*(.72+.238*v);
+  const y=.139+.018*Math.sin(Math.PI*u)*(1-.24*v)-.012*u;
+  return[x,y,z];
+ },C.navy3);
+ // Endplate rear return and upper lip.
+ tubePath('frontWing',[[2.32,.14,s*.955],[2.27,.22,s*.955],[2.29,.34,s*.955],[2.39,.45,s*.955],[2.55,.49,s*.955]],.011,C.carbon3,9,.32);
+ tubePath('frontWing',[[2.88,.13,s*.955],[2.90,.23,s*.956],[2.85,.37,s*.957],[2.73,.48,s*.957]],.010,C.carbon3,9,.30);
+ // Narrow vertical fences divide the flap channels; their curved profiles follow the wing.
+ for(const zf of [.36,.59,.79]){
+  grid('frontWing',18,12,(u,v)=>{
+   const x=2.76-.39*u-.025*v+.018*Math.sin(Math.PI*v);
+   const y=.166+.155*v-.018*u;
+   return[x,y,s*zf];
+  },C.carbon3);
+ }
+ // Small flap adjuster brackets and outer support struts.
+ for(const zf of [.67,.82]){
+  tubePath('frontWing',[[2.57,.245,s*zf],[2.51,.285,s*zf],[2.43,.319,s*zf]],.009,C.steelHi,8,.34);
+ }
+ // Two carbon mounting pylons from the nose structure to the mainplane.
+ tubePath('frontWing',[[1.92,.43,s*.12],[2.13,.34,s*.13],[2.35,.235,s*.14],[2.60,.155,s*.16]],.025,C.carbon3,10,.42);
+}
+// 5. Rear wing: independent mainplane, DRS flap, beam wing and sculpted endplates.
+airfoil('rearWing',-2.82,.60,.765,1.88,.086,C.carbon2,.058,.135,{dir:1});
+airfoil('rearWing',-2.72,.405,.914,1.79,.061,C.navy3,.064,.092,{dir:1});
+airfoil('rearWing',-2.18,.405,.525,1.67,.060,C.carbon3,.044,.072,{dir:1});
+for(const s of [-1,1]){
+ // Curved full-height rear-wing endplate with a forward toe and swept upper corner.
+ const rearPlate=(u,v)=>[
+  -2.84+.655*u+.055*Math.sin(Math.PI*v)*(1-u)-.018*v,
+  .475+.565*v-.028*u+.018*Math.sin(Math.PI*u),
+  s*(.936+.014*Math.sin(Math.PI*v)-.006*u)
+ ];
+ grid('rearWing',38,26,rearPlate,C.carbon2);
+ grid('rearWing',38,26,(u,v)=>{const p=rearPlate(u,v);p[2]-=s*.014;return p;},C.carbon3);
+ // Endplate leading/trailing rolled edges and upper gurney lip.
+ tubePath('rearWing',[[-2.84,.475,s*.936],[-2.83,.64,s*.938],[-2.79,.82,s*.941],[-2.72,1.00,s*.944],[-2.57,1.035,s*.944]],.010,C.carbon3,9,.30);
+ tubePath('rearWing',[[-2.19,.50,s*.936],[-2.18,.65,s*.938],[-2.22,.82,s*.941],[-2.29,.97,s*.944]],.009,C.carbon3,8,.28);
+ tubePath('rearWing',[[-2.18,1.015,s*.944],[-2.32,1.025,s*.944],[-2.48,1.025,s*.944],[-2.66,1.012,s*.944]],.007,C.carbon3,8,.25);
+ // Horizontal edgeplate slots and louvre details.
+ for(let i=0;i<4;i++){
+  const y=.60+i*.075,x0=-2.69+i*.025,x1=-2.34+i*.018;
+  tubePath('rearWing',[[x0,y,s*.952],[x0+.10,y+.012,s*.953],[x1,y+.008,s*.952]],.0055,C.black,7,.22);
+ }
+ // Vertical internal supports between the mainplane and DRS flap.
+ for(const zf of [.28,.58,.79]){
+  grid('rearWing',16,10,(u,v)=>{
+   const x=-2.70+.34*u-.025*v;
+   const y=.805+.145*v-.012*u;
+   return[x,y,s*zf];
+  },C.carbon3);
+ }
+ // Flap adjuster links.
+ for(const zf of [.19,.36]){
+  tubePath('rearWing',[[-2.65,.835,s*zf],[-2.58,.88,s*zf],[-2.48,.915,s*zf]],.008,C.steelHi,8,.34);
+ }
+}
+// Two swan-neck support pylons, attached forward of the DRS hinge line.
+for(const s of [-1,1]){
+ tubePath('rearWing',[[-2.32,.42,s*.115],[-2.39,.57,s*.115],[-2.50,.73,s*.115],[-2.60,.89,s*.115]],.030,C.carbon2,12,.55);
+ tubePath('rearWing',[[-2.24,.42,s*.13],[-2.29,.57,s*.13],[-2.38,.74,s*.13],[-2.47,.90,s*.13]],.018,C.carbon3,10,.45);
+}
+// Central DRS actuator fairing and rear rain-light housing.
+loft('rearWing',[[-2.48,.84,0,.045,.035],[-2.40,.88,0,.055,.045],[-2.29,.88,0,.038,.03]],C.carbon3,24,2.8);
+box('rearWing',-2.08,.385,0,.082,.115,.105,C.red);
+// 6. Halo, cockpit braces and mirrors.
+for(const s of [-1,1]){
+ tubePath('halo',[[.34,.76,s*.12],[.29,.91,s*.20],[.04,1.015,s*.29],[-.35,1.02,s*.30],[-.60,.87,s*.22],[-.49,.79,s*.16]],.026,C.carbon3,12,.72);
+ tubePath('halo',[[-.60,.87,s*.22],[-.48,.79,s*.16],[-.30,.75,s*.12]],.025,C.carbon3,10,.7);
+}
+tubePath('halo',[[.34,.76,0],[.27,.92,0],[.03,1.015,0]],.032,C.carbon2,10,.7);
+tubePath('halo',[[-.35,1.02,-.30],[-.35,1.02,.30]],.028,C.carbon2,10,.7);
+for(const s of [-1,1]){tubePath('halo',[[.28,.79,s*.22],[.44,.88,s*.36],[.56,.90,s*.50]],.012,C.carbon,8,.6);loft('halo',[[.46,.91,s*.48,.04,.025],[.58,.92,s*.53,.075,.04],[.68,.90,s*.53,.05,.03]],C.navy3,24,2.3);}
+
+// 7. Suspension: swept, flattened wishbone members and compact uprights.
+for(const s of [-1,1]){
+ // Front, visible double wishbone plus steering and pushrod.
+ tubePath('frontSusp',[[.47,.60,s*.15],[.77,.55,s*.25],[1.20,.49,s*.53],[1.66,.39,s*.72]],.023,C.carbon2,10,.30);
+ tubePath('frontSusp',[[.50,.35,s*.16],[.86,.34,s*.29],[1.26,.35,s*.56],[1.67,.36,s*.72]],.024,C.carbon2,10,.30);
+ tubePath('frontSusp',[[.55,.47,s*.19],[.96,.46,s*.36],[1.48,.42,s*.65]],.015,C.steel,9,.36);
+ tubePath('frontSusp',[[.95,.63,s*.19],[1.29,.49,s*.45],[1.69,.37,s*.70]],.016,C.carbon3,9,.34);
+ loft('frontSusp',[[1.55,.35,s*.70,.045,.12],[1.75,.365,s*.785,.055,.15],[1.91,.36,s*.79,.04,.11]],C.rimDark,26,2.5);
+ // Rear links, toe link and upright fairing.
+ tubePath('rearSusp',[[-.63,.61,s*.15],[-.96,.56,s*.27],[-1.32,.48,s*.52],[-1.67,.39,s*.70]],.024,C.carbon2,10,.30);
+ tubePath('rearSusp',[[-.72,.33,s*.15],[-1.04,.33,s*.30],[-1.38,.35,s*.54],[-1.68,.36,s*.70]],.025,C.carbon2,10,.30);
+ tubePath('rearSusp',[[-.80,.46,s*.18],[-1.17,.45,s*.38],[-1.55,.42,s*.67]],.015,C.steel,9,.36);
+ tubePath('rearSusp',[[-1.04,.59,s*.22],[-1.37,.48,s*.46],[-1.69,.37,s*.69]],.017,C.carbon3,9,.34);
+ loft('rearSusp',[[-1.55,.36,s*.69,.045,.12],[-1.75,.37,s*.785,.055,.15],[-1.92,.36,s*.79,.04,.11]],C.rimDark,26,2.5);
+}
+
+// 8. Wheels, tyres and brakes — 18-inch generation with realistic tyre envelopes.
+for(const x of [1.80,-1.80])for(const s of [-1,1])wheel(x,s,x<0);
 
 // 9. Simplified PU and gearbox, kept behind the exterior so isolation remains useful.
 loft('power',[[-1.96,.46,0,.10,.10],[-1.62,.52,0,.22,.18],[-1.25,.56,0,.27,.22],[-.91,.58,0,.25,.20]],C.rimDark,40,2.4);
