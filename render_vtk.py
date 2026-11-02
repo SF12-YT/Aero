@@ -12,12 +12,18 @@ cover_im=Image.new('RGBA',(512,256),(0,0,0,0));cd=ImageDraw.Draw(cover_im)
 cd.ellipse((18,25,494,187),fill=(244,201,0,255))
 cd.polygon([(120,130),(158,64),(215,87),(270,43),(315,88),(370,69),(390,125),(345,153),(288,132),(246,170),(190,143)],fill=(213,30,43,255))
 cd.text((256,218),'Red Bull',font=ImageFont.truetype(font_b,58),fill=(213,30,43,255),anchor='mm')
+tyre_im=Image.new('RGBA',(1024,256),(23,27,32,255));td=ImageDraw.Draw(tyre_im)
+td.text((512,38),'PIRELLI',font=ImageFont.truetype(font_b,64),fill=(231,195,40,255),anchor='mm')
+td.text((512,218),'PIRELLI',font=ImageFont.truetype(font_b,64),fill=(231,195,40,255),anchor='mm')
+td.text((512,88),'P ZERO',font=ImageFont.truetype(font_b,30),fill=(213,217,222,255),anchor='mm')
+td.text((512,168),'P ZERO',font=ImageFont.truetype(font_b,30),fill=(213,217,222,255),anchor='mm')
+td.rectangle((180,124,844,126),fill=(52,59,67,255))
 def make_texture(image):
     arr=np.array(image)
     img=vtk.vtkImageData();img.SetDimensions(image.width,image.height,1);img.AllocateScalars(vtk.VTK_UNSIGNED_CHAR,4)
     flat=np.flipud(arr).reshape(-1,4);vtkarr=numpy_to_vtk(flat,deep=True,array_type=vtk.VTK_UNSIGNED_CHAR);vtkarr.SetNumberOfComponents(4);img.GetPointData().SetScalars(vtkarr)
     tex=vtk.vtkTexture();tex.SetInputData(img);tex.InterpolateOn();tex.RepeatOff();return tex
-textures={'side':make_texture(side_im),'cover':make_texture(cover_im)}
+textures={'side':make_texture(side_im),'cover':make_texture(cover_im),'tyre':make_texture(tyre_im)}
 
 def build_scene(camera):
  r=vtk.vtkRenderer();r.SetBackground(.025,.04,.065);r.SetBackground2(.06,.09,.13);r.GradientBackgroundOn()
