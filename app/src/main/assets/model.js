@@ -1,4 +1,4 @@
-/* AeroLab 25 — RB21 exterior reconstruction study, revision 0.4.0.
+/* AeroLab 25 — RB21 exterior reconstruction study, revision 0.5.0.
  * Coordinate convention: +X = nose, +Y = up, +/-Z = left/right.
  * Geometry is built from smooth section lofts, swept aerofoils and shaped struts.
  * It is a photo/reference reconstruction, not Red Bull CAD or a certified replica.
@@ -50,6 +50,35 @@ function loft(g,sections,color,segments=48,shape=2.55,undercut=0){
  for(let r=0;r<rows.length-1;r++)for(let j=0;j<segments;j++){const a=r*segments+j,b=r*segments+(j+1)%segments,c=(r+1)*segments+(j+1)%segments,d=(r+1)*segments+j;I.push(a,b,c,a,c,d);}
  const ca=P.length/3;P.push(rows[0][0],rows[0][1],rows[0][2]);for(let j=0;j<segments;j++){const n=(j+1)%segments;I.push(ca,n,j);}const cb=P.length/3,last=(rows.length-1)*segments;P.push(rows[rows.length-1][0],rows[rows.length-1][1],rows[rows.length-1][2]);for(let j=0;j<segments;j++){const n=(j+1)%segments;I.push(cb,last+j,last+n);}addMesh(g,P,I,color);
 }
+function shellLoft(g,sections,color,segments=72,shapeY=3.0,shapeZ=3.0,lowerPinch=0,upperShoulder=0){
+ const rows=[],steps=10;
+ for(let r=0;r<sections.length-1;r++){
+  const a=sections[Math.max(0,r-1)],b=sections[r],c=sections[r+1],d=sections[Math.min(sections.length-1,r+2)];
+  for(let q=0;q<steps;q++){const t=q/steps;rows.push(b.map((v,i)=>cat(a[i],v,c[i],d[i],t)));}
+ }
+ rows.push(sections[sections.length-1]);
+ const P=[],I=[];
+ for(const section of rows){
+  const[x,cy,cz,w,h]=section;
+  for(let j=0;j<segments;j++){
+   const angle=j/segments*Math.PI*2,sy=Math.sin(angle),sz=Math.cos(angle);
+   const py=Math.sign(sy)*Math.pow(Math.abs(sy),2/shapeY);
+   const pz=Math.sign(sz)*Math.pow(Math.abs(sz),2/shapeZ);
+   const lower=1-lowerPinch*Math.pow(Math.max(0,-py),2);
+   const shoulder=1+upperShoulder*Math.pow(Math.max(0,py),2.4);
+   P.push(x,cy+py*h,cz+pz*w*lower*shoulder);
+  }
+ }
+ for(let r=0;r<rows.length-1;r++)for(let j=0;j<segments;j++){
+  const a=r*segments+j,b=r*segments+(j+1)%segments,c=(r+1)*segments+(j+1)%segments,d=(r+1)*segments+j;
+  I.push(a,b,c,a,c,d);
+ }
+ const ca=P.length/3;P.push(rows[0][0],rows[0][1],rows[0][2]);
+ for(let j=0;j<segments;j++)I.push(ca,(j+1)%segments,j);
+ const last=(rows.length-1)*segments,cb=P.length/3;P.push(rows[rows.length-1][0],rows[rows.length-1][1],rows[rows.length-1][2]);
+ for(let j=0;j<segments;j++)I.push(cb,last+j,last+(j+1)%segments);
+ addMesh(g,P,I,color);
+}
 function grid(g,nu,nv,fn,color){const P=[],I=[];for(let i=0;i<=nu;i++)for(let j=0;j<=nv;j++)P.push(...fn(i/nu,j/nv));const s=nv+1;for(let i=0;i<nu;i++)for(let j=0;j<nv;j++){const a=i*s+j,b=a+1,c=a+s+1,d=a+s;I.push(a,b,c,a,c,d);}addMesh(g,P,I,color);}
 function roundedRectYZ(g,x,cy,cz,ry,rz,corner,color){const P=[[x,cy,cz]],I=[],N=12;const cs=[[cy+ry-corner,cz+rz-corner,0],[cy-ry+corner,cz+rz-corner,90],[cy-ry+corner,cz-rz+corner,180],[cy+ry-corner,cz-rz+corner,270]];for(const [yy,zz,start] of cs)for(let k=0;k<=N;k++){const a=(start+k*90/N)*Math.PI/180;P.push([x,yy+corner*Math.sin(a),zz+corner*Math.cos(a)]);}for(let i=1;i<P.length-1;i++)I.push(0,i,i+1);addMesh(g,P.flat(),I,color);}
 function decalQuad(g,points,flip=false){const P=points.flat(),I=[0,1,2,0,2,3],UV=flip?[1,1,0,1,0,0,1,0]:[0,1,1,1,1,0,0,0];addMesh(g,P,I,C.white,UV,true);}
@@ -78,9 +107,19 @@ function wheel(x,s,rear){const y=.365,z=s*.785,w=rear?.405:.305,profile=[[-.5,.2
  cylinder('wheels',[x,y,z-s*w*.30],[x,y,z+s*w*.30],.225,.225,C.brake,40);const calx=x+.12,caly=y+.10;cylinder('wheels',[calx-.07,caly,z+s*(w*.30)],[calx+.07,caly,z+s*(w*.30)],.062,.062,C.gold,16);
 }
 
-// 1. Monocoque and long, shallow RB21-style nose.
-loft('nose',[[.78,.54,0,.30,.19],[.42,.55,0,.33,.205],[-.02,.55,0,.34,.205],[-.48,.54,0,.32,.19],[-.92,.52,0,.27,.16],[-1.30,.49,0,.19,.12]],C.navy,56,2.65);
-loft('nose',[[2.56,.335,0,.022,.024],[2.40,.355,0,.052,.048],[2.16,.395,0,.095,.083],[1.88,.435,0,.135,.115],[1.52,.475,0,.19,.145],[1.14,.515,0,.245,.17],[.78,.54,0,.30,.19]],C.navy2,56,2.25);
+// 1. Primary survival-cell shell and long, shallow nose.
+// Separate vertical/lateral profiles, a narrower lower waist and a restrained
+// upper shoulder replace the single rounded section used in the first study.
+shellLoft('nose',[
+ [.98,.525,0,.255,.145],[.78,.54,0,.292,.165],[.50,.55,0,.322,.181],
+ [.18,.56,0,.337,.19],[-.16,.558,0,.337,.188],[-.50,.55,0,.322,.18],
+ [-.86,.535,0,.292,.165],[-1.16,.51,0,.245,.14],[-1.36,.49,0,.18,.105]
+],C.navy,80,3.05,2.85,.13,.065);
+shellLoft('nose',[
+ [2.60,.35,0,.013,.014],[2.52,.36,0,.028,.025],[2.34,.386,0,.06,.05],
+ [2.13,.412,0,.087,.072],[1.88,.444,0,.122,.098],[1.60,.478,0,.16,.125],
+ [1.30,.51,0,.207,.15],[1.06,.531,0,.245,.152],[.90,.535,0,.267,.15]
+],C.navy2,80,3.35,3.0,.035,.015);
 // Yellow upper nose panel with narrow shoulders and a slightly broader base.
 grid('nose',48,10,(u,v)=>{const x=.92+u*1.48,half=.155*(1-u)+.045,y=.715-.30*Math.pow(u,.84)+.024+.006*(1-Math.abs(v*2-1));return[x,y,(v*2-1)*half];},C.yellow);
 // Red upper nose flash and thin side pinstripes.
