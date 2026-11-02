@@ -1,4 +1,4 @@
-/* AeroLab 25 — RB21 exterior reconstruction study, revision 0.10.0.
+/* AeroLab 25 — RB21 exterior reconstruction study, revision 0.11.0.
  * Coordinate convention: +X = nose, +Y = up, +/-Z = left/right.
  * Geometry is built from smooth section lofts, swept aerofoils and shaped struts.
  * It is a photo/reference reconstruction, not Red Bull CAD or a certified replica.
@@ -173,10 +173,11 @@ function wheel(x,s,rear){
 // Separate vertical/lateral profiles, a narrower lower waist and a restrained
 // upper shoulder replace the single rounded section used in the first study.
 shellLoft('nose',[
- [.98,.525,0,.255,.145],[.78,.54,0,.292,.165],[.50,.55,0,.322,.181],
- [.18,.56,0,.337,.19],[-.16,.558,0,.337,.188],[-.50,.55,0,.322,.18],
- [-.86,.535,0,.292,.165],[-1.16,.51,0,.245,.14],[-1.36,.49,0,.18,.105]
-],C.navy,80,3.05,2.85,.13,.065);
+ // Front shoulder transition from the raised nose into a wider survival cell.
+ [.98,.525,0,.265,.150],[.78,.542,0,.315,.180],[.50,.566,0,.365,.205],
+ [.18,.585,0,.405,.223],[-.16,.590,0,.425,.228],[-.50,.574,0,.418,.222],
+ [-.86,.548,0,.380,.202],[-1.16,.514,0,.312,.172],[-1.36,.490,0,.205,.120]
+],C.navy,96,3.15,3.0,.16,.12);
 shellLoft('nose',[
  [2.60,.35,0,.013,.014],[2.52,.36,0,.028,.025],[2.34,.386,0,.06,.05],
  [2.13,.412,0,.087,.072],[1.88,.444,0,.122,.098],[1.60,.478,0,.16,.125],
@@ -187,14 +188,20 @@ grid('nose',48,10,(u,v)=>{const x=.92+u*1.48,half=.155*(1-u)+.045,y=.715-.30*Mat
 // Red upper nose flash and thin side pinstripes.
 tubePath('nose',[[2.38,.39,-.018],[2.16,.43,-.045],[1.88,.49,-.075],[1.54,.55,-.105],[1.18,.60,-.12]],.009,C.red,8,.55);
 tubePath('nose',[[2.38,.39,.018],[2.16,.43,.045],[1.88,.49,.075],[1.54,.55,.105],[1.18,.60,.12]],.009,C.red,8,.55);
-// Cockpit tub, dark aperture and raised rim.
-loft('nose',[[.25,.69,0,.27,.13],[-.12,.70,0,.30,.135],[-.48,.66,0,.26,.12]],C.carbon2,48,2.3);
-grid('nose',36,18,(u,v)=>{const a=u*Math.PI*2,r=.245*v;return[-.13+Math.cos(a)*r,.795,Math.sin(a)*.195*v];},C.black);
-tubePath('nose',[[.17,.80,0],[.13,.80,.17],[-.10,.80,.225],[-.40,.79,.18],[-.48,.79,0],[-.40,.79,-.18],[-.10,.80,-.225],[.13,.80,-.17],[.17,.80,0]],.018,C.navy3,10,.75);
-box('nose',-.16,.735,0,.32,.11,.19,C.black);
+// Cockpit tub, recessed aperture, shaped side bolsters and raised rim.
+// The aperture is longer than the earlier oval insert and sits inside the
+// higher shoulder surface instead of floating above a narrow nose shell.
+loft('nose',[[.18,.700,0,.275,.115],[-.12,.705,0,.300,.115],[-.52,.665,0,.265,.105]],C.carbon2,56,2.45);
+grid('nose',48,22,(u,v)=>{const a=u*Math.PI*2,r=.335*v;return[-.15+Math.cos(a)*r,.824,Math.sin(a)*.215*v];},C.black);
+tubePath('nose',[[.205,.842,0],[.17,.845,.145],[.055,.842,.205],[-.12,.840,.228],[-.34,.836,.225],[-.515,.832,.17],[-.565,.830,0],[-.515,.832,-.17],[-.34,.836,-.225],[-.12,.840,-.228],[.055,.842,-.205],[.17,.845,-.145],[.205,.842,0]],.021,C.navy3,12,.78);
+// Inner cockpit padding and a sloped headrest/seat back, kept below the rim.
+for(const s of [-1,1]){
+ tubePath('nose',[[.12,.802,s*.145],[-.06,.798,s*.170],[-.30,.785,s*.170],[-.49,.770,s*.135]],.028,C.carbon3,10,.72);
+}
+loft('nose',[[-.56,.695,0,.125,.060],[-.40,.725,0,.155,.075],[-.20,.720,0,.140,.065]],C.black,40,2.65);
 // Camera pods, antenna and front chassis shoulders.
-for(const s of [-1,1]){beam('nose',[-.48,.68,s*.23],[-.59,.77,s*.28],.017,C.carbon3);sphere('nose',[-.59,.78,s*.28],.035,C.black,[1,.7,1.2],12,8);}
-beam('nose', [.66,.70,0],[.72,.84,0],.009,C.black,);
+for(const s of [-1,1]){beam('nose',[-.48,.705,s*.265],[-.59,.775,s*.305],.017,C.carbon3);sphere('nose',[-.59,.785,s*.305],.035,C.black,[1,.7,1.2],12,8);}
+beam('nose',[.66,.715,0],[.72,.845,0],.009,C.black);
 
 // 2. RB21 sidepod shells, built to the high inlet / deep undercut / steep rear taper seen in 2025 reference views.
 const podSections=[
@@ -363,11 +370,11 @@ loft('rearWing',[[-2.48,.84,0,.045,.035],[-2.40,.88,0,.055,.045],[-2.29,.88,0,.0
 box('rearWing',-2.08,.385,0,.082,.115,.105,C.red);
 // 6. Halo, cockpit braces and mirrors.
 for(const s of [-1,1]){
- tubePath('halo',[[.34,.76,s*.12],[.29,.91,s*.20],[.04,1.015,s*.29],[-.35,1.02,s*.30],[-.60,.87,s*.22],[-.49,.79,s*.16]],.026,C.carbon3,12,.72);
- tubePath('halo',[[-.60,.87,s*.22],[-.48,.79,s*.16],[-.30,.75,s*.12]],.025,C.carbon3,10,.7);
+ tubePath('halo',[[.34,.842,s*.12],[.29,.932,s*.20],[.04,1.015,s*.29],[-.35,1.020,s*.30],[-.60,.910,s*.22],[-.49,.846,s*.16]],.026,C.carbon3,12,.72);
+ tubePath('halo',[[-.60,.910,s*.22],[-.48,.842,s*.16],[-.30,.824,s*.12]],.025,C.carbon3,10,.7);
 }
-tubePath('halo',[[.34,.76,0],[.27,.92,0],[.03,1.015,0]],.032,C.carbon2,10,.7);
-tubePath('halo',[[-.35,1.02,-.30],[-.35,1.02,.30]],.028,C.carbon2,10,.7);
+tubePath('halo',[[.34,.842,0],[.27,.932,0],[.03,1.015,0]],.032,C.carbon2,10,.7);
+tubePath('halo',[[-.35,1.020,-.30],[-.35,1.020,.30]],.028,C.carbon2,10,.7);
 for(const s of [-1,1]){tubePath('halo',[[.28,.79,s*.22],[.44,.88,s*.36],[.56,.90,s*.50]],.012,C.carbon,8,.6);loft('halo',[[.46,.91,s*.48,.04,.025],[.58,.92,s*.53,.075,.04],[.68,.90,s*.53,.05,.03]],C.navy3,24,2.3);}
 
 // 7. Suspension: swept, flattened wishbone members and compact uprights.
