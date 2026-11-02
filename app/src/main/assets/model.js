@@ -1,4 +1,4 @@
-/* AeroLab 25 — RB21 exterior reconstruction study, revision 0.5.0.
+/* AeroLab 25 — RB21 exterior reconstruction study, revision 0.6.0.
  * Coordinate convention: +X = nose, +Y = up, +/-Z = left/right.
  * Geometry is built from smooth section lofts, swept aerofoils and shaped struts.
  * It is a photo/reference reconstruction, not Red Bull CAD or a certified replica.
@@ -88,7 +88,15 @@ function makeCoverTexture(){const c=document.createElement('canvas');c.width=512
 function textureFromCanvas(c){const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,c);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);return t;}
 const decalTexture=makeDecalTexture(),coverTexture=makeCoverTexture();
 function interpSection(sections,x){let i=0;while(i<sections.length-2&&x<sections[i+1][0])i++;const a=sections[i],b=sections[i+1],t=Math.max(0,Math.min(1,(x-a[0])/(b[0]-a[0])));return a.map((v,k)=>v+(b[k]-v)*t);}
-function podOuterZ(x,y,s,sections){const q=interpSection(sections,x),cy=q[1],cz=q[2]*s,w=q[3],h=q[4],shape=3.35,ny=Math.max(-1,Math.min(1,(y-cy)/(h||1))),n=Math.pow(Math.max(0,1-Math.pow(Math.abs(ny),shape)),1/shape),pinch=ny<0?1-.58*ny*ny:1;return cz+s*(w*n*pinch+.012); }
+const POD_SHAPE_Y=4.2,POD_SHAPE_Z=3.25,POD_LOWER_PINCH=.76,POD_UPPER_SHOULDER=.075;
+function podOuterZ(x,y,s,sections){
+ const q=interpSection(sections,x),cy=q[1],cz=q[2],w=q[3],h=q[4];
+ const py=Math.max(-.999,Math.min(.999,(y-cy)/(h||1)));
+ const pz=Math.pow(Math.max(0,1-Math.pow(Math.abs(py),POD_SHAPE_Y)),1/POD_SHAPE_Z);
+ const lower=1-POD_LOWER_PINCH*Math.pow(Math.max(0,-py),2);
+ const shoulder=1+POD_UPPER_SHOULDER*Math.pow(Math.max(0,py),2.4);
+ return s*(cz+w*pz*lower*shoulder+.009);
+}
 function tubePath(g,points,r,color,radial=10,flat=.68){const samples=[],steps=5;for(let k=0;k<points.length-1;k++){const a=points[Math.max(0,k-1)],b=points[k],c=points[k+1],d=points[Math.min(points.length-1,k+2)];for(let q=0;q<steps;q++){const t=q/steps;samples.push([0,1,2].map(i=>cat(a[i],b[i],c[i],d[i],t)));}}samples.push(points[points.length-1]);const P=[],I=[];
  for(let k=0;k<samples.length;k++){const prev=samples[Math.max(0,k-1)],next=samples[Math.min(samples.length-1,k+1)],t=unit(next.map((v,i)=>v-prev[i]));let seed=Math.abs(t[1])<.9?[0,1,0]:[1,0,0],u=unit(cross(t,seed)),v=cross(t,u);for(let j=0;j<radial;j++){const a=j/radial*Math.PI*2;P.push(samples[k][0]+r*(u[0]*Math.cos(a)+v[0]*Math.sin(a)*flat),samples[k][1]+r*(u[1]*Math.cos(a)+v[1]*Math.sin(a)*flat),samples[k][2]+r*(u[2]*Math.cos(a)+v[2]*Math.sin(a)*flat));}}
  for(let k=0;k<samples.length-1;k++)for(let j=0;j<radial;j++){const a=k*radial+j,b=k*radial+(j+1)%radial,c=(k+1)*radial+(j+1)%radial,d=(k+1)*radial+j;I.push(a,b,c,a,c,d);}addMesh(g,P,I,color);}
@@ -135,16 +143,27 @@ for(const s of [-1,1]){beam('nose',[-.48,.68,s*.23],[-.59,.77,s*.28],.017,C.carb
 beam('nose', [.66,.70,0],[.72,.84,0],.009,C.black,);
 
 // 2. RB21 sidepod shells, built to the high inlet / deep undercut / steep rear taper seen in 2025 reference views.
-const podSections=[[.88,.485,.405,.205,.155],[.66,.505,.415,.275,.205],[.35,.495,.415,.315,.205],[.02,.465,.398,.305,.178],[-.34,.435,.375,.270,.150],[-.68,.405,.345,.225,.123],[-1.00,.380,.305,.178,.098],[-1.28,.355,.260,.125,.072],[-1.48,.345,.210,.062,.043]];
+const podSections=[
+ [.90,.482,.402,.192,.150],[.72,.500,.412,.248,.190],[.43,.492,.414,.302,.207],
+ [.10,.465,.397,.307,.190],[-.25,.435,.372,.270,.160],[-.58,.403,.339,.224,.132],
+ [-.90,.375,.302,.180,.108],[-1.20,.348,.258,.126,.078],[-1.46,.330,.210,.060,.043]
+];
 for(const s of [-1,1]){
  const z=s*.405;
- loft('sidepods',podSections.map(([x,cy,cz,w,h])=>[x,cy,s*cz,w,h]),C.navy,72,3.35,.58);
+ shellLoft('sidepods',podSections.map(([x,cy,cz,w,h])=>[x,cy,s*cz,w,h]),C.navy,96,POD_SHAPE_Y,POD_SHAPE_Z,POD_LOWER_PINCH,POD_UPPER_SHOULDER);
  // The sidepod inlet is a wide, vertically flattened rounded rectangle, rather than a circular hole.
  roundedRectYZ('sidepods',.892,.555,s*.414,.104,.235,.055,C.black);
  tubePath('sidepods',[[.904,.657,s*.235],[.904,.679,s*.345],[.904,.665,s*.53],[.904,.615,s*.625],[.904,.535,s*.654],[.904,.455,s*.615],[.904,.405,s*.51],[.904,.405,s*.335],[.904,.455,s*.235]],.018,C.navy3,12,.78);
- // A dark, genuinely open-looking lower channel and the outer floor-edge shoulder.
- tubePath('sidepods',[[.58,.335,s*.675],[.30,.295,s*.69],[-.08,.270,s*.66],[-.48,.272,s*.60],[-.86,.296,s*.52],[-1.20,.325,s*.43],[-1.43,.34,s*.31]],.033,C.carbon,12,.35);
- tubePath('sidepods',[[.56,.345,s*.688],[.25,.312,s*.70],[-.14,.291,s*.655],[-.54,.298,s*.585],[-.94,.322,s*.49],[-1.30,.345,s*.36]],.011,C.red,8,.38);
+ // Broad carbon lower-side panel creates the visible undercut instead of representing it as a round tube.
+ grid('sidepods',64,12,(u,v)=>{
+  const x=.56-u*1.94,top=.414-.030*u+.009*Math.sin(Math.PI*u),bottom=.309+.035*u;
+  const y=top*(1-v)+bottom*v;
+  return [x,y,podOuterZ(x,y,s,podSections)+s*.006];
+ },C.carbon);
+ // Fine lower return edge and its red highlight follow the sculpted side surface.
+ const edgePoints=[[.55,.412],[.25,.400],[-.08,.390],[-.42,.374],[-.78,.359],[-1.12,.346],[-1.37,.337]];
+ tubePath('sidepods',edgePoints.map(([x,y])=>[x,y,podOuterZ(x,y,s,podSections)+s*.013]),.010,C.carbon3,9,.36);
+ tubePath('sidepods',edgePoints.slice(0,6).map(([x,y],i)=>[x,y-.014,podOuterZ(x,y-.014,s,podSections)+s*.014]),.007,C.red,8,.32);
  // Upper shoulder edge and the RB21's fine red / yellow livery sweep.
  tubePath('sidepods',[[.58,.655,s*.51],[.34,.682,s*.60],[.02,.655,s*.61],[-.34,.59,s*.56],[-.72,.515,s*.47],[-1.10,.438,s*.36]],.012,C.navy3,9,.52);
  tubePath('sidepods',[[.48,.602,s*.704],[.20,.625,s*.707],[-.12,.592,s*.672],[-.47,.535,s*.603],[-.82,.475,s*.518],[-1.10,.421,s*.402]],.014,C.red,10,.42);
@@ -158,9 +177,18 @@ for(const s of [-1,1]){
  decalSurface('sidepods',s,.46,-.92,.565,.455,.405,.345,(x,y,side)=>podOuterZ(x,y,side,podSections),[0,0,1,1],'side');
 }
 // Raised engine-cover spine and tail: smooth centreline taper to gearbox.
-const coverSections=[[.22,.62,0,.285,.15],[-.18,.69,0,.315,.205],[-.55,.70,0,.285,.205],[-.92,.65,0,.235,.17],[-1.30,.58,0,.18,.13],[-1.68,.51,0,.125,.09],[-2.02,.47,0,.075,.06]];
-loft('sidepods',coverSections,C.navy2,64,2.9,.12);
-for(const s of [-1,1])decalSurface('sidepods',s,-.28,-1.16,.795,.635,.675,.535,(x,y,side)=>{const q=interpSection(coverSections,x),ny=Math.max(-1,Math.min(1,(y-q[1])/(q[4]||1))),norm=Math.pow(Math.max(0,1-Math.pow(Math.abs(ny),2.9)),1/2.9);return side*(q[2]+q[3]*norm+.012);},[0,0,1,1],'cover');
+const coverSections=[
+ [.22,.625,0,.252,.135],[-.15,.682,0,.292,.190],[-.50,.692,0,.270,.196],
+ [-.86,.650,0,.226,.172],[-1.20,.586,0,.170,.132],[-1.54,.520,0,.116,.091],
+ [-1.88,.468,0,.066,.055],[-2.08,.450,0,.040,.036]
+];
+shellLoft('sidepods',coverSections,C.navy2,88,4.15,3.2,.24,.065);
+for(const side of [-1,1])decalSurface('sidepods',side,-.28,-1.16,.795,.635,.675,.535,(x,y,sgn)=>{
+ const q=interpSection(coverSections,x),ny=Math.max(-.999,Math.min(.999,(y-q[1])/(q[4]||1)));
+ const norm=Math.pow(Math.max(0,1-Math.pow(Math.abs(ny),4.15)),1/3.2);
+ const pinch=1-.24*Math.pow(Math.max(0,-ny),2),shoulder=1+.065*Math.pow(Math.max(0,ny),2.4);
+ return sgn*(q[2]+q[3]*norm*pinch*shoulder+.010);
+},[0,0,1,1],'cover');
 // Airbox and roll-hoop fairing, with yellow upper surround.
 loft('sidepods',[[-.42,.81,0,.14,.10],[-.68,.875,0,.19,.13],[-.91,.85,0,.155,.11],[-1.08,.77,0,.105,.075]],C.navy,48,2.45);
 loft('sidepods',[[-.59,.965,0,.14,.035],[-.74,.99,0,.17,.045],[-.88,.965,0,.14,.04]],C.yellow,40,2.5);
